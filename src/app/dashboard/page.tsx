@@ -186,7 +186,8 @@ export default function DashboardPage() {
   const topWaitlistPincodes = Object.entries(waitlistByPincode).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   return (
-    <div className="space-y-2 animate-in fade-in duration-500 max-w-[1500px] mx-auto pb-8">
+    <div className="max-w-[1500px] mx-auto pb-8 p-4 sm:p-6 shadow-sm bg-white">
+      <div className="space-y-2 animate-in fade-in duration-500">
       <div className="pb-1 mb-1 border-b border-border/50">
         <h1 className="text-lg font-medium tracking-tight text-foreground">
           Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">{me?.name ?? '...'}</span>
@@ -641,6 +642,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+      </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePermission, useAnyPermission } from '@/lib/hooks/useAuth';
 
 interface PermissionGateProps {
@@ -19,7 +19,19 @@ export function PermissionGate({ module, action, anyOf, alwaysVisible, children,
   const singleCheck = usePermission(module ?? '__none__', action);
   const anyCheck = useAnyPermission(anyOf ?? []);
 
+  // GET /auth/me only resolves in the browser (there's no auth context during
+  // SSR), so the permission check is unavoidably false on the server. If the
+  // client's *first* render already reflected the real (client-only) result —
+  // e.g. because the query resolved fast, or a cached value was already in
+  // memory from an earlier navigation — that first render would disagree with
+  // the server-rendered HTML and React would flag a hydration mismatch. Stay
+  // "not mounted" (server-matching) through that first paint, then flip to
+  // the real check once hydration is safely done.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (alwaysVisible) return <>{children}</>;
+  if (!mounted) return <>{fallback}</>;
 
   const hasPermission = anyOf ? anyCheck : singleCheck;
   if (!hasPermission) {

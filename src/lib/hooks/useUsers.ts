@@ -30,6 +30,7 @@ export interface User {
   vendorId?: string;
   createdBy?: UserActor | null;
   updatedBy?: UserActor | null;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +83,16 @@ export function useUpdateUser() {
     mutationFn: async ({ id, ...input }) => {
       const res = await apiClient.patch<ApiSuccessEnvelope<User>>(`/users/${id}`, input);
       return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ApiErrorEnvelope>, string>({
+    mutationFn: async (id) => {
+      await apiClient.delete(`/users/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   });

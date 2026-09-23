@@ -2,7 +2,6 @@
 
 import React, { Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
   Sidebar,
@@ -50,7 +49,14 @@ import {
   Database,
   Sparkles,
   MessageSquareWarning,
-  ChevronDown
+  ChevronDown,
+  GalleryHorizontal,
+  UserPlus,
+  Menu,
+  Search,
+  Share2,
+  Cog,
+  HelpCircle
 } from 'lucide-react';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -61,12 +67,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 // docs/openapi/citycalls.yaml before adding a new item.
 interface NavItem {
   title: string;
-  url: string;
+  url?: string;
   icon: React.ComponentType<{ className?: string }>;
   module?: string;
   action?: string;
   anyOf?: { module: string; action?: string }[];
   alwaysVisible?: boolean;
+  // A parent item that expands into its own sub-links (e.g. "SEO Manager")
+  // instead of navigating anywhere itself — url is unused when this is set.
+  children?: { title: string; url: string }[];
 }
 
 const navItems: { group: string; items: NavItem[] }[] = [
@@ -74,6 +83,29 @@ const navItems: { group: string; items: NavItem[] }[] = [
     group: 'Main',
     items: [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, alwaysVisible: true },
+    ],
+  },
+  {
+    group: 'Website Section',
+    items: [
+      { title: 'Hero Carousel', url: '/dashboard/website/hero-slides', icon: GalleryHorizontal, module: 'marketing' },
+      { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'SEO Section',
+    items: [
+      {
+        title: 'SEO Manager',
+        icon: Search,
+        module: 'marketing',
+        children: [
+          { title: 'Add Meta', url: '/dashboard/seo/add-meta' },
+          { title: 'Meta List', url: '/dashboard/seo/meta-list' },
+          { title: 'Advanced SEO', url: '/dashboard/seo/advanced-seo' },
+        ],
+      },
+      { title: 'Social Media', url: '/dashboard/seo/social-media', icon: Share2, module: 'marketing' },
     ],
   },
   {
@@ -186,10 +218,13 @@ const navItems: { group: string; items: NavItem[] }[] = [
     ],
   },
   {
-    group: 'Configuration',
+    group: 'Admin Section',
     items: [
       { title: 'Masters', url: '/dashboard/masters', icon: Settings, module: 'config' },
-      { title: 'Roles & Users', url: '/dashboard/roles', icon: Users, module: 'users' },
+      { title: 'Roles & Permissions', url: '/dashboard/roles', icon: Users, module: 'users' },
+      { title: 'Staff & Team Members', url: '/dashboard/staff', icon: UserPlus, module: 'users' },
+      { title: 'Navbar List', url: '/dashboard/navbar-list', icon: Menu, module: 'config' },
+      { title: 'Settings', url: '/dashboard/settings', icon: Cog, module: 'config' },
     ],
   },
 ];
@@ -212,28 +247,49 @@ function AdminSidebarContent() {
   const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
   const { isBeautyMode } = useBeautyMode();
 
+  // Manual open/close overrides from clicking a trigger — a submenu with no
+  // override yet falls back to auto-opening when the current route is one
+  // of its children (computed at render time, no effect needed).
+  const [submenuOverrides, setSubmenuOverrides] = React.useState<Record<string, boolean>>({});
+  const isSubmenuOpen = (item: NavItem) =>
+    submenuOverrides[item.title] ?? !!item.children?.some((c) => currentUrl === c.url);
+
   return (
     <Sidebar
       className={
         isBeautyMode
           ? 'border-r border-pink-200 [&_[data-sidebar=sidebar]]:bg-white text-pink-950'
-          : 'border-r border-white/10 [&_[data-sidebar=sidebar]]:bg-black text-white'
+          : 'border-r-4 border-[#8cc63f] [&_[data-sidebar=sidebar]]:bg-white text-gray-800'
       }
     >
-      <SidebarHeader className="h-12 flex justify-center items-center px-4 border-b bg-black border-gray-50">
-        <Image src="/logo.png" alt="CityCalls Logo" width={668} height={190} className="h-10 w-auto object-contain" priority />
+      <SidebarHeader
+        className={
+          isBeautyMode
+            ? 'h-14 flex justify-center items-center px-4 border-b border-pink-200 bg-white'
+            : 'h-14 flex justify-center items-center px-4 border-b border-[#3e8914]/30 bg-gradient-to-r from-white to-[#3e8914]/5'
+        }
+      >
+        <h1 className="text-3xl font-bold">
+          {isBeautyMode ? (
+            <span className="text-pink-500">CityCalls</span>
+          ) : (
+            <>
+              <span className="text-[#3e8914]">City</span>
+              <span className="text-gray-900">Calls</span>
+            </>
+          )}
+        </h1>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-white">
         {navItems.map((group) => {
-          const isMain = group.group === 'Main';
           return (
-          <Collapsible key={group.group} defaultOpen={isMain} className="group/collapsible">
-            <SidebarGroup className="py-0">
-              <CollapsibleTrigger 
+          <Collapsible key={group.group} defaultOpen className="group/collapsible">
+            <SidebarGroup className="py-0 pb-1 mb-1 border-b border-black/15">
+              <CollapsibleTrigger
                 nativeButton={false}
                 render={
-                  <SidebarGroupLabel 
-                    className={`w-full flex items-center justify-between cursor-pointer ${isBeautyMode ? 'text-pink-400 font-semibold hover:text-pink-500' : 'text-gray-400 font-semibold hover:text-gray-300'}`} 
+                  <SidebarGroupLabel
+                    className={`h-6 w-full flex items-center justify-between cursor-pointer text-[9.5px] uppercase font-bold tracking-[0.035em] ${isBeautyMode ? 'text-pink-400 hover:text-pink-500' : 'text-[#0F2854] hover:text-[#0a1c3a]'}`}
                   />
                 }
               >
@@ -244,26 +300,74 @@ function AdminSidebarContent() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent>
-                  <SidebarMenu>
-                    {group.items.map((item) => (
-                      <PermissionGate key={item.title} module={item.module} action={item.action} anyOf={item.anyOf} alwaysVisible={item.alwaysVisible}>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            render={<Link href={item.url} />}
-                            isActive={currentUrl === item.url}
-                            className={
-                              isBeautyMode
-                                ? 'text-pink-950 hover:bg-pink-50 hover:text-pink-950 data-[active]:bg-pink-500 data-[active]:text-white transition-colors'
-                                : 'text-white hover:bg-gray-800 hover:text-white data-[active]:bg-[#8cc63f] data-[active]:text-black transition-colors'
-                            }
-                            style={{ color: currentUrl === item.url ? (isBeautyMode ? '#fff' : '#000') : (isBeautyMode ? '#500724' : '#fff') }}
+                  <SidebarMenu className="text-[12px] font-medium">
+                    {group.items.map((item) =>
+                      item.children ? (
+                        <PermissionGate key={item.title} module={item.module} action={item.action} anyOf={item.anyOf} alwaysVisible={item.alwaysVisible}>
+                          <Collapsible
+                            open={isSubmenuOpen(item)}
+                            onOpenChange={(open) => setSubmenuOverrides((prev) => ({ ...prev, [item.title]: open }))}
                           >
-                            <item.icon />
-                            <span>{item.title}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </PermissionGate>
-                    ))}
+                            <SidebarMenuItem>
+                              <CollapsibleTrigger
+                                render={
+                                  <SidebarMenuButton
+                                    className={
+                                      isBeautyMode
+                                        ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 transition-colors'
+                                        : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 transition-colors'
+                                    }
+                                    style={{ color: isBeautyMode ? '#500724' : '#1f2937' }}
+                                  />
+                                }
+                              >
+                                <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
+                                <span>{item.title}</span>
+                                <ChevronDown className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${isSubmenuOpen(item) ? 'rotate-180' : ''}`} />
+                              </CollapsibleTrigger>
+                            </SidebarMenuItem>
+                            <CollapsibleContent>
+                              <SidebarMenu className="border-l border-black/10 pl-4 text-[12px] font-medium">
+                                {item.children.map((child) => (
+                                  <SidebarMenuItem key={child.title}>
+                                    <SidebarMenuButton
+                                      render={<Link href={child.url} />}
+                                      isActive={currentUrl === child.url}
+                                      className={
+                                        isBeautyMode
+                                          ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 data-[active]:bg-pink-500 data-[active]:text-white data-[active]:border-pink-500 transition-colors'
+                                          : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 data-[active]:bg-[#3e8914]/15 data-[active]:text-gray-900 data-[active]:border-[#3e8914] transition-colors'
+                                      }
+                                      style={{ color: isBeautyMode ? (currentUrl === child.url ? '#fff' : '#500724') : '#1f2937' }}
+                                    >
+                                      <span>{child.title}</span>
+                                    </SidebarMenuButton>
+                                  </SidebarMenuItem>
+                                ))}
+                              </SidebarMenu>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </PermissionGate>
+                      ) : (
+                        <PermissionGate key={item.title} module={item.module} action={item.action} anyOf={item.anyOf} alwaysVisible={item.alwaysVisible}>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              render={<Link href={item.url ?? '#'} />}
+                              isActive={currentUrl === item.url}
+                              className={
+                                isBeautyMode
+                                  ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 data-[active]:bg-pink-500 data-[active]:text-white data-[active]:border-pink-500 transition-colors'
+                                  : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 data-[active]:bg-[#3e8914]/15 data-[active]:text-gray-900 data-[active]:border-[#3e8914] transition-colors'
+                              }
+                              style={{ color: isBeautyMode ? (currentUrl === item.url ? '#fff' : '#500724') : '#1f2937' }}
+                            >
+                              <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
+                              <span>{item.title}</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </PermissionGate>
+                      )
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>

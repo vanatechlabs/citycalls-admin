@@ -26,6 +26,12 @@ export interface Role {
   name: string;
   description: string;
   editable: boolean;
+  // True for a role created via "New Role" (customRoles.model.ts on the
+  // backend), false for one of the 22 built-in roles (users.types.ts).
+  isCustom: boolean;
+  // Only meaningful (and only persisted) for custom roles — built-in roles
+  // aren't DB documents, so this is always 'ACTIVE' and can't be toggled.
+  status: 'ACTIVE' | 'INACTIVE';
   permissions: RolePermissionRow[];
 }
 
@@ -36,6 +42,48 @@ export function useRoles() {
       const res = await apiClient.get<ApiSuccessEnvelope<Role[]>>('/roles');
       return res.data.data;
     },
+  });
+}
+
+export interface CreateCustomRoleInput {
+  name: string;
+  description?: string;
+}
+
+export function useCreateCustomRole() {
+  const queryClient = useQueryClient();
+  return useMutation<Role, AxiosError<ApiErrorEnvelope>, CreateCustomRoleInput>({
+    mutationFn: async (input) => {
+      const res = await apiClient.post<ApiSuccessEnvelope<Role>>('/roles', input);
+      return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+  });
+}
+
+export function useDeleteCustomRole() {
+  const queryClient = useQueryClient();
+  return useMutation<void, AxiosError<ApiErrorEnvelope>, string>({
+    mutationFn: async (slug) => {
+      await apiClient.delete(`/roles/${slug}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+  });
+}
+
+export interface UpdateRoleStatusInput {
+  role: string;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+export function useUpdateRoleStatus() {
+  const queryClient = useQueryClient();
+  return useMutation<Role, AxiosError<ApiErrorEnvelope>, UpdateRoleStatusInput>({
+    mutationFn: async ({ role, status }) => {
+      const res = await apiClient.patch<ApiSuccessEnvelope<Role>>(`/roles/${role}/status`, { status });
+      return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
   });
 }
 

@@ -6,7 +6,7 @@ import axios from 'axios';
 export const FILE_CATEGORIES = [
   'ISSUE_IMAGE', 'PRODUCT_IMAGE', 'BEFORE_SERVICE_IMAGE', 'AFTER_SERVICE_IMAGE', 'PART_IMAGE',
   'VENDOR_DOCUMENT', 'EMPLOYEE_DOCUMENT', 'INVOICE_ATTACHMENT', 'RECORDING', 'VIDEO',
-  'SIGNATURE', 'PROFILE_IMAGE', 'CATALOG_IMAGE', 'MARKETING_MEDIA',
+  'SIGNATURE', 'PROFILE_IMAGE', 'CATALOG_IMAGE', 'MARKETING_MEDIA', 'WEBSITE_HERO_IMAGE',
 ] as const;
 export type FileCategory = (typeof FILE_CATEGORIES)[number];
 
@@ -52,10 +52,10 @@ type SignedUploadResult =
   | { mode: 'LOCAL'; uploadUrl: string }
   | { mode: 'CLOUDINARY'; timestamp: number; signature: string; apiKey: string; cloudName: string; folder: string };
 
-function useRequestSignedUpload() {
+function useRequestSignedUpload(skipGlobalToast = false) {
   return useMutation<SignedUploadResult, AxiosError<ApiErrorEnvelope>, { category: FileCategory; entityType: string; entityId: string }>({
     mutationFn: async (input) => {
-      const res = await apiClient.post<ApiSuccessEnvelope<SignedUploadResult>>('/files/signed-upload', input);
+      const res = await apiClient.post<ApiSuccessEnvelope<SignedUploadResult>>('/files/signed-upload', input, { skipGlobalToast });
       return res.data.data;
     },
   });
@@ -71,10 +71,10 @@ interface ConfirmUploadInput {
   sizeBytes: number;
 }
 
-function useConfirmUpload() {
+function useConfirmUpload(skipGlobalToast = false) {
   return useMutation<UploadedFile, AxiosError<ApiErrorEnvelope>, ConfirmUploadInput>({
     mutationFn: async (input) => {
-      const res = await apiClient.post<ApiSuccessEnvelope<UploadedFile>>('/files/confirm', input);
+      const res = await apiClient.post<ApiSuccessEnvelope<UploadedFile>>('/files/confirm', input, { skipGlobalToast });
       return res.data.data;
     },
   });
@@ -87,7 +87,7 @@ interface DirectUploadInput {
   file: File;
 }
 
-function useDirectUpload() {
+function useDirectUpload(skipGlobalToast = false) {
   return useMutation<UploadedFile, AxiosError<ApiErrorEnvelope>, DirectUploadInput>({
     mutationFn: async ({ file, ...fields }) => {
       const form = new FormData();
@@ -97,6 +97,7 @@ function useDirectUpload() {
       form.append('entityId', fields.entityId);
       const res = await apiClient.post<ApiSuccessEnvelope<UploadedFile>>('/files/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        skipGlobalToast,
       });
       return res.data.data;
     },
@@ -114,11 +115,11 @@ export function useDeleteFile() {
     },
   });
 }
-export function useUploadFile(entityType: string, entityId: string) {
+export function useUploadFile(entityType: string, entityId: string, options?: { skipGlobalToast?: boolean }) {
   const queryClient = useQueryClient();
-  const requestSignedUpload = useRequestSignedUpload();
-  const confirmUpload = useConfirmUpload();
-  const directUpload = useDirectUpload();
+  const requestSignedUpload = useRequestSignedUpload(options?.skipGlobalToast);
+  const confirmUpload = useConfirmUpload(options?.skipGlobalToast);
+  const directUpload = useDirectUpload(options?.skipGlobalToast);
 
   const isPending = requestSignedUpload.isPending || confirmUpload.isPending || directUpload.isPending;
 

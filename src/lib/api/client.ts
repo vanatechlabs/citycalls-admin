@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipGlobalToast?: boolean;
+  }
+}
+
 // Local to this repo — no shared api-client package exists (multi-repo, per
 // docs/coordination/03-code-ownership.md). Base URL points at citycalls-api.
 export const apiClient = axios.create({
@@ -29,19 +35,28 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => {
     const method = response.config.method?.toLowerCase();
-    if (method && method !== 'get' && response.data?.message) {
+    // /auth/login already shows its own SweetAlert2 success toast on the
+    // login page — skip this one so login doesn't double-toast.
+    const isLogin = response.config.url?.includes('/auth/login');
+    if (method && method !== 'get' && response.data?.message && !isLogin && !response.config.skipGlobalToast) {
       toast.success(response.data.message);
     }
     return response;
   },
   (error) => {
+    // Login feedback is handled by the login page with SweetAlert2. Avoid
+    // showing the same API error again through the global Sonner toaster.
+    const isLogin = error.config?.url?.includes('/auth/login');
+
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
     const message = error.response?.data?.message ?? error.message ?? 'Something went wrong. Please try again.';
-    toast.error(message);
+    if (!isLogin && !error.config?.skipGlobalToast) {
+      toast.error(message);
+    }
     return Promise.reject(error);
   }
 );
