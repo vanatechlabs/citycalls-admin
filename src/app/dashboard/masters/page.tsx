@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { DataTable } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { AppFormField } from '@/components/ui/AppFormField';
 import { FormSheet } from '@/components/ui/FormSheet';
 import { Separator } from '@/components/ui/separator';
-import { Pencil } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { useUploadFile, resolveFileUrl, useFileList } from '@/lib/hooks/useFiles';
 
@@ -194,16 +192,17 @@ function EditMasterForm({ master, siblings, onClose }: { master: Master; sibling
 function MasterImageCell({ masterId }: { masterId: string }) {
   const { data: files } = useFileList('MASTER', masterId);
   const image = files?.find((f) => f.category === 'CATALOG_IMAGE' || !f.category.includes('VIDEO'));
-  
-  if (!image) return <div className="w-10 h-10 bg-slate-100 rounded-md border flex items-center justify-center text-slate-400 text-xs">No img</div>;
-  
+  const [failed, setFailed] = useState(false);
+
+  if (!image || failed) return <div className="w-10 h-10 bg-slate-100 rounded-md border flex items-center justify-center text-slate-400 text-xs">No img</div>;
+
   let url = resolveFileUrl(image);
   if (url.startsWith('/')) {
     url = `http://localhost:4000${url}`;
   }
 
   return (
-    <img src={url} alt="Master Icon" className="w-10 h-10 object-cover rounded-md border" onError={(e) => console.error('Image failed to load:', url)} />
+    <img src={url} alt="Master Icon" className="w-10 h-10 object-cover rounded-md border" onError={() => setFailed(true)} />
   );
 }
 
@@ -212,97 +211,202 @@ export default function MastersPage() {
   const { data: masters, isLoading, isError } = useMasters([selectedType]);
   const updateMaster = useUpdateMaster();
 
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const total = masters?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedMasters = (masters ?? []).slice(startIndex, startIndex + PAGE_SIZE);
+
+  const handleStatusChange = (item: Master, active: boolean) => {
+    if (item.active === active) return;
+    updateMaster.mutate({ masterType: item.masterType, id: item._id, active });
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between pb-1 mb-2 border-b border-border/50">
-        <div>
-          <h1 className="text-lg font-medium tracking-tight text-foreground">Masters Configuration</h1>
-          <p className="text-[13px] text-muted-foreground">Manage system master lists — pick a type below to see only that list.</p>
-        </div>
-        <FormSheet triggerLabel="Add Master" title="Add Master Entry" description="Create a new master-list entry.">
-          {(close) => <AddMasterForm defaultType={selectedType} siblings={masters || []} onClose={close} />}
-        </FormSheet>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {MASTER_TYPES.map((t) => (
-          <button
-            key={t}
-            onClick={() => setSelectedType(t)}
-            className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
-              selectedType === t
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-            }`}
+    <div className="min-h-[calc(100vh-100px)] w-[calc(100%+12px)] -mt-3 -ml-3 bg-white text-[#18233b]">
+      <div className="flex min-h-full flex-col px-[18px] pb-[16px] pt-[14px]">
+        {/* TOP HEADING — matching Roles & Permissions / Staff */}
+        <div className="mb-[20px] flex shrink-0 items-center justify-between border-b-[2px] border-[#293681] pb-[8px]">
+          <div>
+            <h1 className="text-[19px] font-bold leading-[1.15] tracking-[-0.018em] text-[#23471d]">
+              Masters Configuration
+            </h1>
+            <p className="mt-0.5 text-[12px] font-medium text-[#6c7587]">
+              Manage system master lists — pick a type below to see only that list.
+            </p>
+          </div>
+          <FormSheet
+            triggerLabel="Add Master"
+            title="Add Master Entry"
+            description="Create a new master-list entry."
+            triggerElement={
+              <button
+                type="button"
+                className="flex h-[30px] items-center justify-center gap-[5px] rounded-[6px] bg-[#4B1426] px-[14px] text-[12px] font-semibold text-white shadow-[0_5px_12px_rgba(75,20,38,0.25)] transition hover:bg-[#3a0f1d]"
+              >
+                Add Master
+              </button>
+            }
           >
-            {MASTER_TYPE_LABELS[t]}
-          </button>
-        ))}
-      </div>
+            {(close) => <AddMasterForm defaultType={selectedType} siblings={masters || []} onClose={close} />}
+          </FormSheet>
+        </div>
 
-      <div className="pt-2">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-slate-800">{MASTER_TYPE_LABELS[selectedType]}</h2>
+        <div className="flex flex-wrap gap-1.5 mb-4 shrink-0">
+          {MASTER_TYPES.map((t) => (
+            <button
+              key={t}
+              onClick={() => { setSelectedType(t); setPage(1); }}
+              className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
+                selectedType === t
+                  ? 'bg-[#4B1426] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+              }`}
+            >
+              {MASTER_TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mb-[4px] shrink-0">
+          <h2 className="text-[14px] font-bold text-[#23471d]">{MASTER_TYPE_LABELS[selectedType]}</h2>
           {!isLoading && !isError && (
-            <span className="text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-              {masters?.length ?? 0} entries
+            <span className="text-[11px] font-semibold text-[#6c7587] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+              {total} entries
             </span>
           )}
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center p-8 text-muted-foreground">Loading {MASTER_TYPE_LABELS[selectedType].toLowerCase()}...</div>
+          <div className="flex justify-center p-8 text-[12px] text-[#6c7587]">Loading {MASTER_TYPE_LABELS[selectedType].toLowerCase()}...</div>
         ) : isError ? (
-          <div className="flex justify-center p-8 text-destructive">Failed to load masters.</div>
+          <div className="flex justify-center p-8 text-[12px] text-destructive">Failed to load masters.</div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <DataTable<Master>
-              data={masters || []}
-              pageSize={10}
-              emptyMessage={`No ${MASTER_TYPE_LABELS[selectedType].toLowerCase()} yet.`}
-              columns={[
-                {
-                  key: 'image',
-                  header: 'Icon',
-                  render: (item) => <MasterImageCell masterId={item._id} />,
-                },
-                { key: 'label', header: 'Name' },
-                { key: 'key', header: 'System Key' },
-                ...(selectedType === 'SERVICE_CATEGORY'
-                  ? [{ key: 'vertical', header: 'Vertical', render: (item: Master) => (typeof item.meta?.vertical === 'string' ? item.meta.vertical : '—') }]
-                  : []),
-                {
-                  key: 'active',
-                  header: 'Status',
-                  render: (item) => <StatusBadge label={item.active ? 'Active' : 'Inactive'} category={item.active ? 'success' : 'default'} />,
-                },
-                {
-                  key: 'actions',
-                  header: <div className="text-center">Action</div>,
-                  render: (item) => (
-                    <div className="flex items-center justify-center gap-1">
-                      <FormSheet
-                        triggerLabel="Edit"
-                        title="Edit Master Entry"
-                        description={`Update ${item.label}.`}
-                        triggerElement={<Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"><Pencil className="w-4 h-4" /></Button>}
-                      >
-                        {(close) => <EditMasterForm master={item} siblings={masters || []} onClose={close} />}
-                      </FormSheet>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={`h-8 text-xs ${item.active ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'}`}
-                        disabled={updateMaster.isPending}
-                        onClick={() => updateMaster.mutate({ masterType: item.masterType, id: item._id, active: !item.active })}
-                      >
-                        {item.active ? 'Deactivate' : 'Activate'}
-                      </Button>
-                    </div>
-                  ),
-                },
-              ]}
-            />
+          // MASTERS TABLE — same border/thead/data/status/action treatment as Staff & Team Members
+          <div className="mt-[4px] flex min-h-0 flex-1 flex-col overflow-hidden bg-white border border-[#e8e5df]">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="h-[32px] border-b border-[#e8e5df] bg-[#233D4D]">
+                    <th className="px-[12px] py-[6px] text-[12px] font-bold text-white uppercase tracking-wider">Icon</th>
+                    <th className="px-[12px] py-[6px] text-[12px] font-bold text-white uppercase tracking-wider">Name</th>
+                    <th className="px-[12px] py-[6px] text-[12px] font-bold text-white uppercase tracking-wider">System Key</th>
+                    {selectedType === 'SERVICE_CATEGORY' && (
+                      <th className="px-[12px] py-[6px] text-[12px] font-bold text-white uppercase tracking-wider">Vertical</th>
+                    )}
+                    <th className="px-[12px] py-[6px] text-[12px] font-bold text-white uppercase tracking-wider">Status</th>
+                    <th className="px-[12px] py-[6px] text-right text-[12px] font-bold text-white uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f0f0ec]">
+                  {paginatedMasters.length === 0 ? (
+                    <tr>
+                      <td colSpan={selectedType === 'SERVICE_CATEGORY' ? 6 : 5} className="py-12 text-center text-[12px] text-[#6c7587]">
+                        No {MASTER_TYPE_LABELS[selectedType].toLowerCase()} yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedMasters.map((item) => (
+                      <tr key={item._id} className="transition hover:bg-slate-50/80">
+                        <td className="px-[12px] py-[8px]"><MasterImageCell masterId={item._id} /></td>
+                        <td className="px-[12px] py-[8px] text-[12px] font-semibold text-[#4B1426]">{item.label}</td>
+                        <td className="px-[12px] py-[8px] text-[11px] font-medium text-[#334155]">{item.key}</td>
+                        {selectedType === 'SERVICE_CATEGORY' && (
+                          <td className="px-[12px] py-[8px] text-[11px] font-medium text-[#6c7587]">
+                            {typeof item.meta?.vertical === 'string' && item.meta.vertical ? item.meta.vertical : '—'}
+                          </td>
+                        )}
+                        <td className="px-[12px] py-[8px]">
+                          <select
+                            key={`${item._id}-${item.active}`}
+                            value={item.active ? 'ACTIVE' : 'INACTIVE'}
+                            onChange={(e) => handleStatusChange(item, e.target.value === 'ACTIVE')}
+                            className={`h-[24px] cursor-pointer appearance-none rounded-[4px] px-[8px] pr-[22px] text-[11px] font-bold outline-none bg-no-repeat bg-[right_6px_center] shadow-xs transition ${
+                              item.active
+                                ? 'bg-[#e8f5e9] text-[#23714a] border border-[#a5d6a7]'
+                                : 'bg-[#fee2e2] text-[#dc2626] border border-[#fca5a5]'
+                            }`}
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                            }}
+                          >
+                            <option value="ACTIVE" className="bg-white text-[#23714a] font-bold">ACTIVE</option>
+                            <option value="INACTIVE" className="bg-white text-[#dc2626] font-bold">INACTIVE</option>
+                          </select>
+                        </td>
+                        <td className="px-[12px] py-[8px] text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <FormSheet
+                              triggerLabel="Edit"
+                              title="Edit Master Entry"
+                              description={`Update ${item.label}.`}
+                              triggerElement={
+                                <button
+                                  type="button"
+                                  title="Edit Master Entry"
+                                  className="flex h-[25px] w-[25px] items-center justify-center rounded-[6px] bg-blue-500/10 text-blue-600 backdrop-blur-md border border-blue-400/30 shadow-[0_2px_6px_rgba(37,99,235,0.12)] transition-all hover:bg-blue-500/20 hover:border-blue-400/50 hover:shadow-[0_3px_10px_rgba(37,99,235,0.25)] hover:scale-105 active:scale-95"
+                                >
+                                  <Pencil className="h-[12px] w-[12px] text-blue-600" />
+                                </button>
+                              }
+                            >
+                              {(close) => <EditMasterForm master={item} siblings={masters || []} onClose={close} />}
+                            </FormSheet>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINATION — matching Staff & Team Members */}
+            {total > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8e5df] bg-[#fafafa] px-[12px] py-[6px] text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-[#2563eb]">
+                    Total Entries: <strong className="font-bold text-[#1d4ed8]">{total}</strong>
+                  </span>
+                  <span className="text-[11px] text-[#8a92a0]">
+                    (Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, total)} of {total})
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-[4px]">
+                  <button
+                    type="button"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage(safePage - 1)}
+                    className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] border border-[#d8dce2] bg-white text-[#334155] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={`flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] border px-1.5 text-[11px] font-bold transition ${
+                        p === safePage ? 'border-[#233D4D] bg-[#233D4D] text-white shadow-xs' : 'border-[#d8dce2] bg-white text-[#334155] hover:bg-slate-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage(safePage + 1)}
+                    className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] border border-[#d8dce2] bg-white text-[#334155] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

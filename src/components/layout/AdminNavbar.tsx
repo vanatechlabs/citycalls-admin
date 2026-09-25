@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { LogOut, UserCircle, Sparkles, ChevronDown, HelpCircle, BellRing, Bell, CheckCheck } from 'lucide-react';
+import { LogOut, UserCircle, Sparkles, ChevronDown, HelpCircle, BellRing, Bell, CheckCheck, Sunrise, Sun, Moon } from 'lucide-react';
 import { clearSession, useMe } from '@/lib/hooks/useAuth';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { useNotifications, useUnreadCount, useMarkNotificationRead } from '@/lib/hooks/useNotifications';
@@ -29,6 +29,26 @@ export function AdminNavbar() {
   const { data: unreadCount } = useUnreadCount();
   const { data: notifications } = useNotifications();
   const markRead = useMarkNotificationRead();
+
+  // Ticks off the wall clock (an external system), not derived from
+  // props/state — a genuine effect+timer subscription, refreshed every
+  // minute so the greeting flips over live without a page reload.
+  const [greeting, setGreeting] = useState<{ text: string; icon: React.ReactNode }>({ text: '', icon: null });
+  useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        setGreeting({ text: 'Good Morning', icon: <Sunrise size={16} className="text-amber-500" /> });
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting({ text: 'Good Afternoon', icon: <Sun size={16} className="text-orange-500" /> });
+      } else {
+        setGreeting({ text: 'Good Evening', icon: <Moon size={16} className="text-indigo-400" /> });
+      }
+    };
+    updateGreeting();
+    const interval = setInterval(updateGreeting, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -55,6 +75,32 @@ export function AdminNavbar() {
       }`}
     >
       <SidebarTrigger className={isBeautyMode ? 'text-pink-950 hover:bg-pink-50' : 'text-slate-600 hover:bg-slate-900/5'} />
+
+      {/* Greeting card — time-of-day + the logged-in user's real name/role from useMe() */}
+      <div
+        className={`hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-colors ${
+          isBeautyMode ? 'bg-pink-50/60 border-pink-200' : 'bg-slate-50/70 border-slate-200/70'
+        }`}
+      >
+        <div className={`flex h-7 w-7 items-center justify-center rounded-full border shadow-xs ${isBeautyMode ? 'bg-white border-pink-100' : 'bg-white border-slate-100'}`}>
+          {greeting.icon}
+        </div>
+        <div className="flex flex-col leading-tight">
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] font-medium text-slate-500">{greeting.text},</span>
+            <span className={`text-[11px] font-bold ${isBeautyMode ? 'text-pink-950' : 'text-[#3e8914]'}`}>{displayName}</span>
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+            </span>
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${isBeautyMode ? 'text-pink-500' : 'text-[#4B1426]'}`}>
+              {displayRole}
+            </span>
+          </div>
+        </div>
+      </div>
 
       <button
         onClick={toggleBeautyMode}

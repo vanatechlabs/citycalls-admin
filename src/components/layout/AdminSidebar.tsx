@@ -2,10 +2,12 @@
 
 import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -15,6 +17,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { PermissionGate } from '@/components/ui/PermissionGate';
+import { clearSession } from '@/lib/hooks/useAuth';
 import {
   LayoutDashboard,
   Settings,
@@ -238,6 +241,7 @@ export function AdminSidebar() {
 }
 
 function AdminSidebarContent() {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // Full current URL (path + query) — items like "Beauty Services" and the
@@ -253,6 +257,24 @@ function AdminSidebarContent() {
   const [submenuOverrides, setSubmenuOverrides] = React.useState<Record<string, boolean>>({});
   const isSubmenuOpen = (item: NavItem) =>
     submenuOverrides[item.title] ?? !!item.children?.some((c) => currentUrl === c.url);
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Logout?',
+      text: 'You will be logged out from the admin panel.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, Logout',
+      cancelButtonText: 'Cancel',
+      background: '#1e2433',
+      color: '#e2e8f0',
+    });
+    if (!result.isConfirmed) return;
+    clearSession();
+    router.push('/login');
+  };
 
   return (
     <Sidebar
@@ -280,7 +302,14 @@ function AdminSidebarContent() {
           )}
         </h1>
       </SidebarHeader>
-      <SidebarContent className="bg-white">
+      <SidebarContent
+        className={
+          isBeautyMode
+            ? 'bg-white [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#500724] [&::-webkit-scrollbar-thumb]:rounded-full'
+            : 'bg-white [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#3e8914] [&::-webkit-scrollbar-thumb]:rounded-full'
+        }
+        style={{ scrollbarWidth: 'thin', scrollbarColor: isBeautyMode ? '#500724 transparent' : '#3e8914 transparent' }}
+      >
         {navItems.map((group) => {
           return (
           <Collapsible key={group.group} defaultOpen className="group/collapsible">
@@ -375,6 +404,15 @@ function AdminSidebarContent() {
           </Collapsible>
         )})}
       </SidebarContent>
+      <SidebarFooter className={isBeautyMode ? 'p-2 border-t border-pink-200' : 'p-2 border-t border-black/10'}>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+        >
+          Logout
+        </button>
+      </SidebarFooter>
     </Sidebar>
   );
 }

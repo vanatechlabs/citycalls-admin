@@ -1,5 +1,23 @@
 import axios from 'axios';
-import { toast } from 'sonner';
+import Swal from 'sweetalert2';
+
+// Same dark, top-end, auto-dismissing toast used across the admin panel's
+// own pages (Roles, Staff, Navbar List, etc.) — replaces sonner so every
+// create/update/delete across the app gives consistent feedback.
+const GlobalToast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3500,
+  timerProgressBar: true,
+  background: '#1e2433',
+  color: '#e2e8f0',
+});
+
+const toast = {
+  success: (message: string) => void GlobalToast.fire({ icon: 'success', title: message, iconColor: '#4ade80' }),
+  error: (message: string) => void GlobalToast.fire({ icon: 'error', title: message, iconColor: '#f87171' }),
+};
 
 declare module 'axios' {
   interface AxiosRequestConfig {

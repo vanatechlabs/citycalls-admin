@@ -232,7 +232,7 @@ export default function StaffPage() {
     if (!result.isConfirmed) return;
 
     deleteUser.mutate(u._id, {
-      onSuccess: () => showToast('success', `"${u.name}"'s account has been deleted.`),
+      onSuccess: () => showToast('success', `${u.name}'s account has been deleted.`),
       onError: (err) => showToast('error', err.response?.data?.message ?? 'Failed to delete staff account.'),
     });
   };

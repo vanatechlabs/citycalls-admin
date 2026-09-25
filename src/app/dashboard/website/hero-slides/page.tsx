@@ -340,13 +340,13 @@ export default function HeroSlidesPage() {
               </div>
 
               <div className="relative w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                 <input
                   type="text"
                   placeholder="Search slides..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-10 pl-10 pr-4 text-sm border-2 border-gray-300 focus:outline-none focus:border-white transition-colors shadow-lg"
+                  className="w-full h-10 pl-10 pr-4 text-sm text-white bg-white/10 border-2 border-white/20 placeholder:text-white/60 focus:outline-none focus:border-white transition-colors shadow-lg"
                 />
               </div>
             </div>
