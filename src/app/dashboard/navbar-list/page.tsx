@@ -163,11 +163,15 @@ export default function NavbarListPage() {
     try {
       let serviceId = editingServiceId;
       let image = serviceForm.image;
+      // The image is uploaded separately after save, so the form often has no
+      // image yet — omit it instead of sending "", which the API rejects (422).
+      const { image: formImage, ...serviceFields } = serviceForm;
+      const payload = formImage.trim() ? { ...serviceFields, image: formImage.trim() } : serviceFields;
 
       if (serviceId) {
-        await updateService.mutateAsync({ id: serviceId, menuId: selectedMenu._id, ...serviceForm });
+        await updateService.mutateAsync({ id: serviceId, menuId: selectedMenu._id, ...payload });
       } else {
-        const created = await createService.mutateAsync({ ...serviceForm, menuId: selectedMenu._id });
+        const created = await createService.mutateAsync({ ...payload, menuId: selectedMenu._id });
         serviceId = created._id;
       }
 
