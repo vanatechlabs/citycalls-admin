@@ -49,6 +49,7 @@ import {
   BarChart4,
   FileKey,
   FileStack,
+  FilePlus2,
   Database,
   Sparkles,
   MessageSquareWarning,
@@ -59,8 +60,18 @@ import {
   Search,
   Share2,
   Cog,
-  HelpCircle
+  HelpCircle,
+  Gift,
+  ClipboardPlus,
+  Refrigerator,
+  Bug,
+  Sofa,
+  SprayCan,
+  LayoutGrid,
+  Layers
 } from 'lucide-react';
+import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
+import { ALL_CATEGORIES, registrationListPath, STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -79,6 +90,8 @@ interface NavItem {
   // A parent item that expands into its own sub-links (e.g. "SEO Manager")
   // instead of navigating anywhere itself — url is unused when this is set.
   children?: { title: string; url: string }[];
+  // Red count pill on the item (e.g. unread registrations).
+  badge?: number;
 }
 
 const navItems: { group: string; items: NavItem[] }[] = [
@@ -92,6 +105,7 @@ const navItems: { group: string; items: NavItem[] }[] = [
     group: 'Website Section',
     items: [
       { title: 'Hero Carousel', url: '/dashboard/website/hero-slides', icon: GalleryHorizontal, module: 'marketing' },
+      { title: 'Offers & Promotions', url: '/dashboard/website/offers', icon: Gift, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
     ],
   },
@@ -109,6 +123,22 @@ const navItems: { group: string; items: NavItem[] }[] = [
         ],
       },
       { title: 'Social Media', url: '/dashboard/seo/social-media', icon: Share2, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Pages Section',
+    items: [
+      { title: 'Add Page', url: '/dashboard/pages/add', icon: FilePlus2, module: 'marketing' },
+      { title: 'Page List', url: '/dashboard/pages/list', icon: FileStack, module: 'marketing' },
+      { title: 'Launch Spotlight', url: '/dashboard/pages/launch-spotlight', icon: GalleryHorizontal, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Registration Section',
+    items: [
+      { title: 'New Registration', url: '/dashboard/registrations/new', icon: ClipboardPlus, module: 'customers', action: 'create' },
+      // + "All Categories" and one dropdown per Navbar List menu, added at
+      // render time by useRegistrationCategoryItems().
     ],
   },
   {
@@ -232,6 +262,47 @@ const navItems: { group: string; items: NavItem[] }[] = [
   },
 ];
 
+// Registration Section's list menus: "All Categories" plus one per Navbar List
+// menu, each expanding into All / Pending / Active / Completed. Built from
+// Navbar List so a new menu there gets its own entry here automatically.
+function categoryIcon(slug: string): React.ComponentType<{ className?: string }> {
+  if (/appliance/.test(slug)) return Refrigerator;
+  if (/pest/.test(slug)) return Bug;
+  if (/sofa/.test(slug)) return Sofa;
+  if (/clean/.test(slug)) return SprayCan;
+  return Layers;
+}
+
+function useRegistrationCategoryItems(): NavItem[] {
+  const { data: menus = [] } = useRegistrationServices();
+  // Red badges: registrations nobody has opened yet, per category.
+  const { data: unread } = useUnreadRegistrations();
+  const categories = [
+    { slug: ALL_CATEGORIES, name: 'All Categories', icon: LayoutGrid, badge: unread?.total },
+    ...menus.map((m) => ({ slug: m.slug, name: m.name, icon: categoryIcon(m.slug), badge: unread?.byCategory[m.name] })),
+  ];
+  return categories.map((category) => ({
+    title: category.name,
+    icon: category.icon,
+    module: 'customers',
+    badge: category.badge,
+    children: STAGE_SLUGS.map((stage) => ({
+      title: STAGE_TITLE[stage],
+      url: registrationListPath(category.slug, stage),
+    })),
+  }));
+}
+
+// Red pill with white count, e.g. unread registrations in a category.
+function CountBadge({ count, className = '' }: { count?: number; className?: string }) {
+  if (!count) return null;
+  return (
+    <span className={`flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold leading-none text-white shadow-sm ${className}`}>
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 export function AdminSidebar() {
   return (
     <Suspense>
@@ -250,6 +321,10 @@ function AdminSidebarContent() {
   // string, so both would otherwise show as active at once.
   const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
   const { isBeautyMode } = useBeautyMode();
+  const registrationCategoryItems = useRegistrationCategoryItems();
+  const groups = navItems.map((group) =>
+    group.group === 'Registration Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
+  );
 
   // Manual open/close overrides from clicking a trigger — a submenu with no
   // override yet falls back to auto-opening when the current route is one
@@ -310,7 +385,7 @@ function AdminSidebarContent() {
         }
         style={{ scrollbarWidth: 'thin', scrollbarColor: isBeautyMode ? '#500724 transparent' : '#3e8914 transparent' }}
       >
-        {navItems.map((group) => {
+        {groups.map((group) => {
           return (
           <Collapsible key={group.group} defaultOpen className="group/collapsible">
             <SidebarGroup className="py-0 pb-1 mb-1 border-b border-black/15">
@@ -352,7 +427,8 @@ function AdminSidebarContent() {
                               >
                                 <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
                                 <span>{item.title}</span>
-                                <ChevronDown className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${isSubmenuOpen(item) ? 'rotate-180' : ''}`} />
+                                <CountBadge count={item.badge} className="ml-auto" />
+                                <ChevronDown className={`${item.badge ? 'ml-1' : 'ml-auto'} h-3.5 w-3.5 shrink-0 transition-transform ${isSubmenuOpen(item) ? 'rotate-180' : ''}`} />
                               </CollapsibleTrigger>
                             </SidebarMenuItem>
                             <CollapsibleContent>

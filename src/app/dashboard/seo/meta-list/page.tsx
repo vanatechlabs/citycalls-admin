@@ -4,14 +4,12 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Edit, Search, Trash2, XCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { deleteSeoMeta, getSeoMetaList, pageName, SeoMeta } from '@/lib/demoSeoStore';
+import { useDeleteSeoMeta, useSeoMetaList, SeoMeta } from '@/lib/hooks/useSeoMeta';
 
 export default function MetaListPage() {
   const router = useRouter();
-  // Lazy initializer — localStorage is only readable client-side, and this
-  // page is a client component, so reading it here (once, per mount) is
-  // safe without needing an effect.
-  const [seoList, setSeoList] = useState<SeoMeta[]>(() => getSeoMetaList());
+  const { data: seoList = [], isLoading } = useSeoMetaList();
+  const deleteMeta = useDeleteSeoMeta();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -20,8 +18,9 @@ export default function MetaListPage() {
     () =>
       seoList.filter(
         (item) =>
-          item.page.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.metaTitle.toLowerCase().includes(searchTerm.toLowerCase())
+          item.pageName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.pagePath.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.metaTitle ?? '').toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [seoList, searchTerm]
   );
@@ -32,13 +31,13 @@ export default function MetaListPage() {
   const paginatedList = filteredList.slice(startIndex, startIndex + PAGE_SIZE);
 
   const handleEdit = (row: SeoMeta) => {
-    router.push(`/dashboard/seo/add-meta?editId=${encodeURIComponent(row.id)}`);
+    router.push(`/dashboard/seo/add-meta?editId=${row._id}`);
   };
 
   const handleDelete = async (row: SeoMeta) => {
     const result = await Swal.fire({
       title: 'Are you sure?',
-      html: `Delete SEO for page: <strong>${pageName(row.page)}</strong>?<br><span class="text-red-600">This cannot be undone!</span>`,
+      html: `Delete SEO for page: <strong>${row.pageName}</strong>?<br><span class="text-red-600">This cannot be undone!</span>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -48,9 +47,12 @@ export default function MetaListPage() {
     });
     if (!result.isConfirmed) return;
 
-    deleteSeoMeta(row.id);
-    setSeoList(getSeoMetaList());
-    void Swal.fire({ icon: 'success', title: 'Deleted!', text: 'SEO module deleted successfully', confirmButtonColor: '#3e8914', timer: 1500, showConfirmButton: false });
+    try {
+      await deleteMeta.mutateAsync(row._id);
+      void Swal.fire({ icon: 'success', title: 'Deleted!', text: 'SEO module deleted successfully', confirmButtonColor: '#3e8914', timer: 1500, showConfirmButton: false });
+    } catch {
+      void Swal.fire({ icon: 'error', title: 'Could not delete SEO entry', confirmButtonColor: '#3e8914' });
+    }
   };
 
   return (
@@ -98,28 +100,28 @@ export default function MetaListPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginatedList.length === 0 ? (
-                  <tr><td colSpan={6} className="py-12 text-center text-[12px] text-[#6c7587]">No SEO meta entries found.</td></tr>
+                  <tr><td colSpan={6} className="py-12 text-center text-[12px] text-[#6c7587]">{isLoading ? 'Loading SEO entries...' : 'No SEO meta entries found.'}</td></tr>
                 ) : (
                   paginatedList.map((row, index) => (
-                    <tr key={row.id} className="transition hover:bg-slate-50/80">
+                    <tr key={row._id} className="transition hover:bg-slate-50/80">
                       <td className="px-[12px] py-[8px] font-bold text-[#3e8914]">{startIndex + index + 1}</td>
                       <td className="px-[12px] py-[8px]">
-                        <span className="block text-[12px] font-bold text-[#4B1426]">{pageName(row.page)}</span>
-                        <span className="block text-[10px] text-gray-400">{row.page}</span>
+                        <span className="block text-[12px] font-bold text-[#4B1426]">{row.pageName}</span>
+                        <span className="block text-[10px] text-gray-400">{row.pagePath}</span>
                       </td>
                       <td className="max-w-[220px] truncate px-[12px] py-[8px] text-[11px] text-[#334155]" title={row.metaTitle}>
                         {row.metaTitle || '—'}
                       </td>
                       <td className="px-[12px] py-[8px]">
                         <div className={`flex w-fit items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium ${
-                          row.status === 'Active' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
+                          row.status === 'ACTIVE' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
                         }`}>
-                          {row.status === 'Active' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                          {row.status}
+                          {row.status === 'ACTIVE' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          {row.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                         </div>
                       </td>
                       <td className="px-[12px] py-[8px]">
-                        <span className="block text-[11px] font-bold uppercase text-red-600">{row.updatedBy}</span>
+                        <span className="block text-[11px] font-bold uppercase text-red-600">{row.updatedBy?.name ?? '—'}</span>
                         <span className="block text-[10px] text-gray-500">{new Date(row.updatedAt).toLocaleString()}</span>
                       </td>
                       <td className="px-[12px] py-[8px] text-right">

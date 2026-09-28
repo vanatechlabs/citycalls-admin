@@ -153,6 +153,23 @@
   --sidebar-ring: oklch(0.65 0.24 5);
 }
 
+/* Slim green scrollbar for tables / tab strips that scroll sideways. */
+@utility thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #3e8914 transparent;
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #3e8914;
+    border-radius: 9999px;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

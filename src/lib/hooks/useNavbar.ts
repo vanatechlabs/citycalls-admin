@@ -62,7 +62,10 @@ export function useCreateNavbarMenu() {
       const res = await apiClient.post<ApiSuccessEnvelope<NavbarMenu>>(MENUS_PATH, input, { skipGlobalToast: true });
       return res.data.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['navbar-menus'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['navbar-menus'] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
+    },
   });
 }
 
@@ -73,7 +76,10 @@ export function useUpdateNavbarMenu() {
       const res = await apiClient.patch<ApiSuccessEnvelope<NavbarMenu>>(`${MENUS_PATH}/${id}`, input, { skipGlobalToast: true });
       return res.data.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['navbar-menus'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['navbar-menus'] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
+    },
   });
 }
 
@@ -86,6 +92,7 @@ export function useDeleteNavbarMenu() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['navbar-menus'] });
       queryClient.invalidateQueries({ queryKey: ['navbar-services'] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
     },
   });
 }
@@ -110,7 +117,10 @@ export function useCreateNavbarService() {
       const res = await apiClient.post<ApiSuccessEnvelope<NavbarService>>(SERVICES_PATH, input, { skipGlobalToast: true });
       return res.data.data;
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
+    },
   });
 }
 
@@ -125,7 +135,10 @@ export function useUpdateNavbarService() {
       const res = await apiClient.patch<ApiSuccessEnvelope<NavbarService>>(`${SERVICES_PATH}/${id}`, input, { skipGlobalToast: true });
       return res.data.data;
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
+    },
   });
 }
 
@@ -135,6 +148,9 @@ export function useDeleteNavbarService() {
     mutationFn: async ({ id }) => {
       await apiClient.delete(`${SERVICES_PATH}/${id}`, { skipGlobalToast: true });
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['navbar-services', variables.menuId] });
+      queryClient.invalidateQueries({ queryKey: ['registration-services'] });
+    },
   });
 }
