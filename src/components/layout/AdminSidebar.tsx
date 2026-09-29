@@ -68,7 +68,9 @@ import {
   Sofa,
   SprayCan,
   LayoutGrid,
-  Layers
+  Layers,
+  ImagePlus,
+  Images
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { ALL_CATEGORIES, registrationListPath, STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
@@ -89,7 +91,7 @@ interface NavItem {
   alwaysVisible?: boolean;
   // A parent item that expands into its own sub-links (e.g. "SEO Manager")
   // instead of navigating anywhere itself — url is unused when this is set.
-  children?: { title: string; url: string }[];
+  children?: { title: string; url: string; badge?: number }[];
   // Red count pill on the item (e.g. unread registrations).
   badge?: number;
 }
@@ -107,6 +109,13 @@ const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Hero Carousel', url: '/dashboard/website/hero-slides', icon: GalleryHorizontal, module: 'marketing' },
       { title: 'Offers & Promotions', url: '/dashboard/website/offers', icon: Gift, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Background Section',
+    items: [
+      { title: 'Add BG Image', url: '/dashboard/backgrounds/add', icon: ImagePlus, module: 'marketing' },
+      { title: 'BG List', url: '/dashboard/backgrounds/list', icon: Images, module: 'marketing' },
     ],
   },
   {
@@ -278,8 +287,14 @@ function useRegistrationCategoryItems(): NavItem[] {
   // Red badges: registrations nobody has opened yet, per category.
   const { data: unread } = useUnreadRegistrations();
   const categories = [
-    { slug: ALL_CATEGORIES, name: 'All Categories', icon: LayoutGrid, badge: unread?.total },
-    ...menus.map((m) => ({ slug: m.slug, name: m.name, icon: categoryIcon(m.slug), badge: unread?.byCategory[m.name] })),
+    { slug: ALL_CATEGORIES, name: 'All Categories', icon: LayoutGrid, badge: unread?.total, pendingBadge: unread?.pendingTotal },
+    ...menus.map((m) => ({
+      slug: m.slug,
+      name: m.name,
+      icon: categoryIcon(m.slug),
+      badge: unread?.byCategory[m.name],
+      pendingBadge: unread?.pendingByCategory?.[m.name],
+    })),
   ];
   return categories.map((category) => ({
     title: category.name,
@@ -289,6 +304,8 @@ function useRegistrationCategoryItems(): NavItem[] {
     children: STAGE_SLUGS.map((stage) => ({
       title: STAGE_TITLE[stage],
       url: registrationListPath(category.slug, stage),
+      // New requests still waiting in Pending.
+      badge: stage === 'pending' ? category.pendingBadge : undefined,
     })),
   }));
 }
@@ -446,6 +463,7 @@ function AdminSidebarContent() {
                                       style={{ color: isBeautyMode ? (currentUrl === child.url ? '#fff' : '#500724') : '#1f2937' }}
                                     >
                                       <span>{child.title}</span>
+                                      <CountBadge count={child.badge} className="ml-auto" />
                                     </SidebarMenuButton>
                                   </SidebarMenuItem>
                                 ))}

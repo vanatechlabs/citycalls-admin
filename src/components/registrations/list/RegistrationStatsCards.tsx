@@ -85,7 +85,7 @@ export function RegistrationStatsCards({ stats, stage, categorySlug, onTodayClic
       {cards.map((card, index) => {
         const Icon = card.icon;
         const interactive = !!card.href || !!card.onClick;
-        const className = `group relative block overflow-hidden border-2 p-3 text-left shadow-sm transition-all duration-300 sm:p-4 ${card.bg} ${
+        const className = `group relative block overflow-hidden rounded-2xl border-2 p-3 text-left shadow-sm transition-all duration-300 sm:p-4 ${card.bg} ${
           card.current ? `${card.iconBorder} ring-2 ring-offset-1 ring-gray-200` : 'border-gray-200'
         } ${interactive ? 'cursor-pointer hover:-translate-y-1 hover:shadow-md' : 'cursor-default'}`;
 

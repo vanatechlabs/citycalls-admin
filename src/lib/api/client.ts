@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { clearStoredTokens, getStoredRefreshToken, saveTokens } from './tokenStorage';
 
 // Same dark, top-end, auto-dismissing toast used across the admin panel's
 // own pages (Roles, Staff, Navbar List, etc.) — replaces sonner so every
@@ -22,13 +23,17 @@ const toast = {
 declare module 'axios' {
   interface AxiosRequestConfig {
     skipGlobalToast?: boolean;
+    // Set once a request has been retried after a token refresh.
+    _retriedAfterRefresh?: boolean;
   }
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
 // Local to this repo — no shared api-client package exists (multi-repo, per
 // docs/coordination/03-code-ownership.md). Base URL points at citycalls-api.
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -36,6 +41,43 @@ let accessToken: string | undefined;
 
 export function setAccessToken(token: string | undefined): void {
   accessToken = token;
+}
+
+// ─── Silent token refresh ────────────────────────────────────────────────────
+// The access token is short-lived (JWT_ACCESS_EXPIRES_IN, 15 min in prod); the
+// refresh token lasts the whole login (JWT_REFRESH_EXPIRES_IN, 7 days). When a
+// request gets 401 we swap the refresh token for a new pair and retry once,
+// so the admin stays logged in until the 7-day login itself runs out.
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+// Several requests can 401 at once; they all wait on the same refresh call
+// (the backend rotates refresh tokens, so a second parallel refresh would fail).
+function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return Promise.resolve(null);
+
+  refreshInFlight ??= axios
+    .post<ApiSuccessEnvelope<{ accessToken: string; refreshToken: string }>>(`${API_BASE_URL}/auth/refresh`, { refreshToken })
+    .then((res) => {
+      const { accessToken: nextAccess, refreshToken: nextRefresh } = res.data.data;
+      saveTokens(nextAccess, nextRefresh);
+      setAccessToken(nextAccess);
+      return nextAccess;
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
+function endSession(): void {
+  setAccessToken(undefined);
+  clearStoredTokens();
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -61,15 +103,25 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     // Login feedback is handled by the login page with SweetAlert2. Avoid
     // showing the same API error again through the global Sonner toaster.
     const isLogin = error.config?.url?.includes('/auth/login');
 
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (error.response?.status === 401 && !isLogin) {
+      const original = error.config;
+      // Expired access token → refresh once and replay the request.
+      if (original && !original._retriedAfterRefresh) {
+        original._retriedAfterRefresh = true;
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(original);
+        }
       }
+      // Refresh token missing/expired/revoked — the 7-day login is over.
+      endSession();
+      return Promise.reject(error);
     }
     const message = error.response?.data?.message ?? error.message ?? 'Something went wrong. Please try again.';
     if (!isLogin && !error.config?.skipGlobalToast) {

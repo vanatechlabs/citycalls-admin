@@ -1,5 +1,8 @@
+'use client';
+
+import { useState } from 'react';
 import {
-  Calendar, CalendarClock, Check, CheckCheck, Edit, Eye, Layers, Mail, Phone, Tag, Trash2, User, UserCog, Wrench,
+  Calendar, CalendarClock, Check, CheckCheck, Edit, Eye, Layers, Mail, Phone, StickyNote, Tag, Trash2, User, UserCog, Wrench, X,
 } from 'lucide-react';
 import type { Registration, RegistrationStatus, StageNote } from '@/lib/hooks/useRegistrations';
 import { STATUS_META } from '@/lib/registrations/constants';
@@ -35,14 +38,45 @@ const actionButton = (tone: 'blue' | 'amber' | 'red' | 'green' | 'indigo') => {
   return `relative cursor-pointer overflow-hidden rounded-md border border-white/60 bg-gradient-to-br p-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.05)] backdrop-blur-md transition-all duration-300 hover:scale-105 ${tones[tone]}`;
 };
 
+// SUPER_ADMIN → "Super Admin"
+const formatRole = (role: string) => role.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 function NoteBlock({ label, note, tone }: { label: string; note?: StageNote; tone: 'indigo' | 'green' }) {
   if (!note) return null;
   const colors = tone === 'indigo' ? 'border-indigo-200 bg-indigo-50/60 text-indigo-900' : 'border-green-200 bg-green-50/70 text-green-900';
   return (
-    <div className={`max-w-[240px] whitespace-normal rounded border px-2 py-1 ${colors}`}>
-      <p className="text-[8.5px] font-bold uppercase tracking-wide opacity-70">{label}</p>
-      <p className="line-clamp-3 text-[10px] font-medium leading-snug" title={note.note}>{note.note}</p>
-      <p className="mt-0.5 text-[8.5px] font-semibold opacity-70">— {note.by.name}, {formatDate(note.at)}</p>
+    <div className={`whitespace-pre-wrap break-words rounded-lg border px-3 py-2 ${colors}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wide opacity-70">{label}</p>
+      <p className="mt-0.5 text-sm font-medium leading-snug">{note.note}</p>
+      <p className="mt-1 text-[10px] font-semibold opacity-70">— {note.by.name}, {formatDate(note.at)}, {formatTime(note.at)}</p>
+    </div>
+  );
+}
+
+function NotesDialog({ row, onClose }: { row: Registration; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[2px]" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Registration notes"
+        className="w-full max-w-md rounded-xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+          <div>
+            <p className="text-sm font-bold text-[#063B00]">Notes</p>
+            <p className="font-mono text-[10px] font-semibold text-gray-500">{row.registrationNo} · {row.fullName}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-gray-500 hover:bg-gray-100" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto p-4">
+          <NoteBlock label="Active note" note={row.activationNote} tone="indigo" />
+          <NoteBlock label="Completion note" note={row.completionNote} tone="green" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -54,7 +88,14 @@ export function RegistrationTable({
   const allOnPageSelected = rows.length > 0 && pageIds.every((id) => selectedIds.includes(id));
   const showNotes = stage !== 'PENDING';
   const showStatus = !stage;
-  const columnCount = 8 + (showNotes ? 1 : 0) + (showStatus ? 1 : 0);
+  const columnCount = 9 + (showNotes ? 1 : 0) + (showStatus ? 1 : 0);
+  // Rows whose "+N" issues chip was clicked to show every issue.
+  const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
+  const [notesRow, setNotesRow] = useState<Registration | null>(null);
+
+  function toggleIssues(id: string) {
+    setExpandedIssues((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]));
+  }
 
   function toggleAll(checked: boolean) {
     onSelectionChange(checked
@@ -94,9 +135,11 @@ export function RegistrationTable({
               <th className={TH}>Service / Category</th>
               <th className={TH}>Issue / Brand</th>
               <th className={TH}>Visit &amp; Coupon</th>
+              {/* WEBSITE = booked on citycalls.in, ADMIN = added from New Registration */}
+              <th className={TH}>Source</th>
               {showStatus && <th className={TH}>Status</th>}
               {showNotes && <th className={TH}>Notes</th>}
-              <th className={TH}>Date &amp; Added By</th>
+              <th className={TH}>Date &amp; Time</th>
               <th className={TH}>Updated By</th>
               <th className={`${TH} text-right`}>Actions</th>
             </tr>
@@ -174,11 +217,18 @@ export function RegistrationTable({
                   <td className={TD}>
                     <div className="flex max-w-[210px] flex-col gap-1">
                       <div className="flex flex-wrap gap-1">
-                        {row.issues.slice(0, 2).map((issue) => (
+                        {(expandedIssues.includes(row._id) ? row.issues : row.issues.slice(0, 2)).map((issue) => (
                           <span key={issue} className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">{issue}</span>
                         ))}
                         {row.issues.length > 2 && (
-                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-600">+{row.issues.length - 2}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleIssues(row._id)}
+                            className="cursor-pointer rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-600 hover:bg-gray-200"
+                            title={expandedIssues.includes(row._id) ? 'Show less' : 'Show all issues'}
+                          >
+                            {expandedIssues.includes(row._id) ? 'Show less' : `+${row.issues.length - 2}`}
+                          </button>
                         )}
                       </div>
                       {row.brand && (
@@ -205,15 +255,27 @@ export function RegistrationTable({
                     </div>
                   </td>
 
+                  <td className={TD}><SourceBadge source={row.source} /></td>
+
                   {showStatus && <td className={TD}><StatusBadge status={row.status} /></td>}
 
                   {showNotes && (
                     <td className={TD}>
-                      <div className="flex flex-col gap-1">
-                        <NoteBlock label="Active note" note={row.activationNote} tone="indigo" />
-                        <NoteBlock label="Completion note" note={row.completionNote} tone="green" />
-                        {!row.activationNote && !row.completionNote && <span className="text-[9px] text-gray-400">—</span>}
-                      </div>
+                      {row.activationNote || row.completionNote ? (
+                        <button
+                          type="button"
+                          onClick={() => setNotesRow(row)}
+                          className="flex cursor-pointer items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100"
+                        >
+                          <StickyNote className="h-3 w-3" />
+                          View
+                          <span className="rounded-full bg-indigo-600 px-1.5 text-[8.5px] text-white">
+                            {[row.activationNote, row.completionNote].filter(Boolean).length}
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-[9px] text-gray-400">—</span>
+                      )}
                     </td>
                   )}
 
@@ -224,8 +286,6 @@ export function RegistrationTable({
                         {formatDate(row.createdAt)}
                       </div>
                       <span className="ml-4 text-[9px] font-medium text-blue-500">{formatTime(row.createdAt)}</span>
-                      {row.createdBy && <span className="ml-4 text-[9px] font-bold text-gray-700">{row.createdBy.name}</span>}
-                      <div className="mt-1"><SourceBadge source={row.source} /></div>
                     </div>
                   </td>
 
@@ -236,8 +296,11 @@ export function RegistrationTable({
                           <UserCog className="h-3 w-3" />
                           {row.updatedBy.name}
                         </div>
-                        <span className="ml-4 text-[9.5px] font-semibold text-gray-800">{formatDate(row.updatedAt)}</span>
-                        <span className="ml-4 text-[9px] font-medium text-blue-500">{formatTime(row.updatedAt)}</span>
+                        {row.updatedBy.role && (
+                          <span className="ml-4 w-fit rounded border border-[#4B1426]/20 bg-[#4B1426]/5 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wide text-[#4B1426]">
+                            {formatRole(row.updatedBy.role)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-[9px] text-gray-400">—</span>
@@ -275,6 +338,8 @@ export function RegistrationTable({
           </tbody>
         </table>
       </div>
+
+      {notesRow && <NotesDialog row={notesRow} onClose={() => setNotesRow(null)} />}
     </div>
   );
 }

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 
 import {
-  fetchRegistrationPage, useBulkDeleteRegistrations, useDeleteRegistration, useRegistrations,
+  fetchRegistrationPage, useBulkDeleteRegistrations, useDeleteRegistration, useMarkRegistrationsViewed, useRegistrations,
   useRegistrationServices, useRegistrationStats, Registration, RegistrationFilters,
 } from '@/lib/hooks/useRegistrations';
 import {
@@ -100,6 +100,18 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
 
   const rows = list?.items ?? [];
   const total = list?.total ?? 0;
+
+  // Seeing a registration in the list counts as reading it: the unread rows
+  // on screen are marked read, so the sidebar badges drop. Each id is sent once.
+  const { mutate: markViewed } = useMarkRegistrationsViewed();
+  const sentViewedIds = useRef(new Set<string>());
+  const unreadIds = rows.filter((r) => !r.viewedAt).map((r) => r._id).join(',');
+  useEffect(() => {
+    const ids = unreadIds.split(',').filter((id) => id && !sentViewedIds.current.has(id));
+    if (ids.length === 0) return;
+    ids.forEach((id) => sentViewedIds.current.add(id));
+    markViewed(ids);
+  }, [unreadIds, markViewed]);
   const serviceOptions = (menu ? [menu] : menus).flatMap((m) => m.services.map((s) => ({ id: s.id, name: s.name })));
 
   function changeFilters(patch: Partial<ToolbarFilters>) {

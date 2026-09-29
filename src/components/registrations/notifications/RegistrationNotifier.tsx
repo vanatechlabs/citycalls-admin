@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { ArrowRight, Globe, Layers, Wrench, X } from 'lucide-react';
+import { ArrowRight, Globe, Layers, UserCog, Wrench, X } from 'lucide-react';
 
 import { useUnreadRegistrations, UnreadRegistration, UnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { formatTime } from '@/lib/registrations/format';
@@ -103,7 +103,13 @@ function RegistrationPopup({ registration: r, onDismiss }: { registration: Unrea
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-gray-500">
             {r.serviceCategory && <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {r.serviceCategory}</span>}
-            {r.source === 'WEBSITE' && <span className="flex items-center gap-1 text-purple-600"><Globe className="h-3 w-3" /> Website</span>}
+            {r.source === 'WEBSITE' ? (
+              <span className="flex items-center gap-1 font-bold text-purple-600"><Globe className="h-3 w-3" /> From Website</span>
+            ) : (
+              <span className="flex items-center gap-1 font-bold text-orange-600">
+                <UserCog className="h-3 w-3" /> From Admin{r.createdBy?.name ? ` · ${r.createdBy.name}` : ''}
+              </span>
+            )}
             <span className="font-mono font-bold text-[#14532d]">{r.registrationNo}</span>
           </div>
           <Link

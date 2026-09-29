@@ -44,6 +44,8 @@ export interface RegistrationInput {
 export interface RegistrationActor {
   userId?: string;
   name: string;
+  // Current role — only filled on updatedBy in list responses.
+  role?: string;
 }
 
 export interface StageNote {
@@ -240,6 +242,8 @@ export interface UnreadRegistration {
   serviceName: string;
   serviceCategory?: string;
   source: 'ADMIN' | 'WEBSITE';
+  // Staff member who entered it (admin registrations).
+  createdBy?: RegistrationActor;
   createdAt: string;
 }
 
@@ -247,6 +251,9 @@ export interface UnreadRegistrations {
   total: number;
   // Category name → unread count (sidebar badges).
   byCategory: Record<string, number>;
+  // Same, counting only Pending ones ("Pending Registration" links).
+  pendingTotal: number;
+  pendingByCategory: Record<string, number>;
   // Newest unread first (popup).
   latest: UnreadRegistration[];
 }
@@ -265,6 +272,19 @@ export function useUnreadRegistrations() {
     refetchInterval: (query) => ((query.state.error as AxiosError | null)?.response?.status === 403 ? false : UNREAD_POLL_MS),
     refetchIntervalInBackground: true,
     retry: false,
+  });
+}
+
+// Opening a list page marks the unread rows it shows as read. Only the badge
+// counts refresh — the rows keep their "New" tag until the list reloads.
+export function useMarkRegistrationsViewed() {
+  const queryClient = useQueryClient();
+  return useMutation<{ updated: number }, AxiosError<ApiErrorEnvelope>, string[]>({
+    mutationFn: async (ids) => {
+      const res = await apiClient.post<ApiSuccessEnvelope<{ updated: number }>>(`${REGISTRATIONS_PATH}/view`, { ids }, { skipGlobalToast: true });
+      return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registrations', 'unread'] }),
   });
 }
 

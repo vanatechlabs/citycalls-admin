@@ -2,12 +2,10 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient, ApiSuccessEnvelope, ApiErrorEnvelope, setAccessToken } from '../api/client';
+import { clearStoredTokens, getStoredAccessToken, getStoredRefreshToken, saveTokens } from '../api/tokenStorage';
 import { LoginResponse, MeResponse } from '../types/auth';
 import { LoginFormValues, ForgotPasswordFormValues, ResetPasswordFormValues } from '../validation/auth';
 import { AxiosError } from 'axios';
-
-const ACCESS_TOKEN_KEY = 'citycalls_access_token';
-const REFRESH_TOKEN_KEY = 'citycalls_refresh_token';
 
 // rememberMe controls WHERE the tokens are persisted, not whether the login
 // itself succeeds — localStorage survives a browser restart, sessionStorage
@@ -25,28 +23,31 @@ export function useLogin() {
     onSuccess: (data, variables) => {
       setAccessToken(data.accessToken);
       if (typeof window !== 'undefined') {
+        // A fresh login replaces whatever session this browser had.
+        clearStoredTokens();
         const storage = variables.rememberMe === false ? window.sessionStorage : window.localStorage;
-        storage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
-        storage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+        saveTokens(data.accessToken, data.refreshToken, storage);
       }
     },
   });
 }
 
+// The stored access token may already be expired — the API client refreshes
+// it on the first 401 using the stored refresh token.
 export function restoreSession(): void {
-  if (typeof window === 'undefined') return;
-  const token = window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  const token = getStoredAccessToken();
   if (token) setAccessToken(token);
 }
 
+// Logout: end the session on the server too (so the refresh token can't be
+// reused), then forget the tokens locally.
 export function clearSession(): void {
-  setAccessToken(undefined);
-  if (typeof window !== 'undefined') {
-    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-    window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-    window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  const refreshToken = getStoredRefreshToken();
+  if (refreshToken) {
+    void apiClient.post('/auth/logout', { refreshToken }, { skipGlobalToast: true }).catch(() => undefined);
   }
+  setAccessToken(undefined);
+  clearStoredTokens();
 }
 
 export function useForgotPassword() {
