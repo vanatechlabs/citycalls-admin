@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { AxiosError } from 'axios';
 import {
-  Bug, Droplets, Edit, Eye, Fan, Gift, List, Percent, PlusCircle, Save, Scissors,
+  ArrowRight, Bug, Copy, Droplets, Edit, Eye, Fan, Gift, List, Percent, PlusCircle, Save, Scissors,
   ShieldCheck, Sparkles, Tag, Trash2, Wrench, X, Zap,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -305,23 +305,65 @@ export default function OffersPage() {
               <div className="lg:col-span-2">
                 <label className={FIELD_LABEL}><Eye className="h-3 w-3" /> Live Preview</label>
                 <p className="mb-3 text-[10px] font-medium text-gray-400">This live preview updates automatically as you type.</p>
-                <div className="w-full border-y border-[#3e8914]/20 shadow-lg" style={stripBackground(strip)}>
-                  <div className="flex flex-col items-center justify-center gap-2 px-4 py-3">
-                    <div className="rounded border border-[#8cc63f]/30 bg-[#8cc63f]/15 p-1.5">
-                      <Gift className="h-4 w-4 text-[#8cc63f]" />
-                    </div>
-                    <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-white/90">
-                      <span className="font-semibold">{strip.textLeft}</span>
-                      <span className="rounded px-2.5 py-0.5 font-black uppercase tracking-wider shadow-md" style={{ background: strip.discountBg, color: strip.discountTextColor }}>
-                        {strip.discountText}
+                {/* Same design as the website's OfferStrip (nextfrontend/src/components/home/OfferStrip) */}
+                <div className="relative w-full overflow-hidden shadow-lg" style={stripBackground(strip)}>
+                  <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent" />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                    style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '14px 14px' }}
+                  />
+                  <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7cb342]/70 to-transparent" />
+                  <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#7cb342]/50 to-transparent" />
+
+                  <div className="relative flex flex-wrap items-center justify-center gap-4 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#7cb342]/15 shadow-[0_0_16px_rgba(124,179,66,0.35)] ring-1 ring-[#7cb342]/40">
+                        <Gift className="h-4 w-4 text-[#7cb342]" />
                       </span>
-                      <span className="font-medium">{strip.textRight}</span>
-                      <span className="rounded border border-amber-400/30 px-2.5 py-0.5 font-bold tracking-wide" style={{ background: strip.couponBg, color: strip.couponTextColor }}>
-                        {strip.couponCode}
-                      </span>
+                      <div className="leading-tight">
+                        <span className="block text-[9px] font-bold uppercase tracking-[0.22em] text-[#7cb342]">Limited Offer</span>
+                        {strip.textLeft && (
+                          <span className="block text-[13px] font-semibold text-white">{strip.textLeft.replace(/\s*[—-]\s*$/, '')}</span>
+                        )}
+                      </div>
                     </div>
-                    <span className="rounded bg-[#8cc63f] px-4 py-1.5 text-xs font-bold text-slate-950 shadow-md">
-                      {strip.buttonText || 'Claim Offer'} →
+
+                    <span aria-hidden className="h-8 w-px bg-white/15" />
+
+                    <div className="flex flex-wrap items-center justify-center gap-2.5">
+                      {strip.discountText && (
+                        <span
+                          className="inline-flex items-center px-3.5 py-1 text-[12px] font-black uppercase tracking-wider shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)]"
+                          style={{
+                            background: strip.discountBg,
+                            color: strip.discountTextColor,
+                            WebkitMaskImage: 'radial-gradient(circle at 0 50%, transparent 5px, #000 5.5px), radial-gradient(circle at 100% 50%, transparent 5px, #000 5.5px)',
+                            WebkitMaskComposite: 'source-in',
+                            maskImage: 'radial-gradient(circle at 0 50%, transparent 5px, #000 5.5px), radial-gradient(circle at 100% 50%, transparent 5px, #000 5.5px)',
+                            maskComposite: 'intersect',
+                          }}
+                        >
+                          {strip.discountText}
+                        </span>
+                      )}
+                      {strip.textRight && <span className="text-[12px] font-medium text-white/80">{strip.textRight}</span>}
+                      {strip.couponCode && (
+                        <span
+                          className="inline-flex items-center gap-2 rounded-lg border border-dashed px-2.5 py-1 text-[12px] font-bold tracking-[0.15em]"
+                          style={{ background: strip.couponBg, color: strip.couponTextColor, borderColor: strip.couponTextColor }}
+                        >
+                          {strip.couponCode}
+                          <span className="flex items-center gap-1 border-l pl-2 text-[10px] font-semibold tracking-normal opacity-90" style={{ borderColor: strip.couponTextColor }}>
+                            <Copy className="h-3 w-3" /> Copy
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#7cb342] px-4 py-2 text-[12px] font-bold text-slate-950 shadow-[0_8px_20px_-8px_rgba(124,179,66,0.8)]">
+                      {strip.buttonText || 'Claim Offer'}
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </span>
                   </div>
                 </div>
