@@ -54,7 +54,14 @@ function formFromMeta(meta: SeoMeta): FormState {
 }
 
 // null = empty (fine), true = valid JSON object/array, false = invalid.
-function jsonLdState(value: string): boolean | null {
+// The <script type="application/ld+json"> wrapper may be pasted too — it's
+// stripped before checking and saving (the website adds its own tag).
+function stripJsonLdScriptTag(value: string): string {
+  return value.trim().replace(/^<script\b[^>]*>/i, '').replace(/<\/script>$/i, '').trim();
+}
+
+function jsonLdState(raw: string): boolean | null {
+  const value = stripJsonLdScriptTag(raw);
   if (!value.trim()) return null;
   try {
     const parsed: unknown = JSON.parse(value);
@@ -139,7 +146,8 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
     }
 
     try {
-      const { pagePath, ...fields } = form;
+      const { pagePath, ...rest } = form;
+      const fields = { ...rest, schemaMarkup: stripJsonLdScriptTag(rest.schemaMarkup) };
       let saved = await saveMeta.mutateAsync(existing ? { id: existing._id, ...fields } : { pagePath, ...fields });
 
       // The image needs the entry's id, so it's uploaded after saving.
@@ -283,7 +291,7 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
                 maxLength={20000}
                 className={`${CODE_AREA} ${jsonValid === false ? 'ring-2 ring-red-500' : ''}`}
               />
-              <p className="text-[10px] text-gray-400">Paste only the JSON (without the &lt;script&gt; tag).</p>
+              <p className="text-[10px] text-gray-400">Paste the JSON, with or without the &lt;script type=&quot;application/ld+json&quot;&gt; tag — the tag is removed automatically.</p>
             </div>
 
             <div className="col-span-2 md:col-span-4">
