@@ -108,6 +108,7 @@ const navItems: { group: string; items: NavItem[] }[] = [
     items: [
       { title: 'Hero Carousel', url: '/dashboard/website/hero-slides', icon: GalleryHorizontal, module: 'marketing' },
       { title: 'Offers & Promotions', url: '/dashboard/website/offers', icon: Gift, module: 'marketing' },
+      { title: 'Features', url: '/dashboard/website/features', icon: LayoutGrid, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
     ],
   },
