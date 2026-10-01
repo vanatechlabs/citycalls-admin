@@ -19,6 +19,8 @@ export interface HeroSlide {
   titleLine2?: string;
   description?: string;
   sortOrder: number;
+  // Overlay darkness 0–90 %; null/undefined = the website's default.
+  overlayOpacity?: number | null;
   status: HeroSlideStatus;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +34,19 @@ export interface HeroSlideInput {
   titleLine2?: string;
   description?: string;
   sortOrder?: number;
+  overlayOpacity?: number | null;
   status?: HeroSlideStatus;
+}
+
+// What the website uses when a slide has no overlay set.
+export const DEFAULT_HERO_OVERLAY_OPACITY = 55;
+export const MAX_HERO_OVERLAY_OPACITY = 90;
+
+// Same gradient as the website's hero overlay, scaled to `opacity` at its
+// darkest (bottom) edge — 55 reproduces the default look exactly.
+export function heroOverlayGradient(opacity: number): string {
+  const alpha = (value: number) => ((opacity * value) / DEFAULT_HERO_OVERLAY_OPACITY / 100).toFixed(3);
+  return `linear-gradient(to top, rgba(0,0,0,${alpha(55)}), rgba(0,0,0,${alpha(35)}), rgba(0,0,0,${alpha(18)}))`;
 }
 
 export function useHeroSlides(params?: { q?: string; status?: HeroSlideStatus }) {

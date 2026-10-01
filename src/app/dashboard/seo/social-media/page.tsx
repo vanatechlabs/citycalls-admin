@@ -92,10 +92,10 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
                   <input
                     value={form.whatsappNumber}
                     onChange={(e) => handleChange('whatsappNumber', e.target.value)}
-                    placeholder="e.g. 919876543210"
+                    placeholder="e.g. 919876543210 or 9876543210"
                     className={FIELD_INPUT}
                   />
-                  <p className="mt-1 text-[9px] font-medium text-gray-400">With country code, no + symbol. Used by the WhatsApp float button.</p>
+                  <p className="mt-1 text-[9px] font-medium text-gray-400">A 10-digit number gets +91 added automatically. Used by the WhatsApp float button.</p>
                 </div>
 
                 <div>
@@ -139,16 +139,17 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
               <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-[#3e8914]">
                 <Share2 className="h-4 w-4" /> Social Networks
               </h2>
-              <p className="mb-3 -mt-1 text-[11px] font-medium text-gray-400">Shown in the website&apos;s social sidebar. Leave a link empty to hide its icon.</p>
+              <p className="mb-3 -mt-1 text-[11px] font-medium text-gray-400">Shown in the website&apos;s social sidebar. Type the full link (the grey text is only an example) — an empty box hides that icon.</p>
 
               <div className="space-y-3">
                 <div>
                   <label className={FIELD_LABEL}><Link2 className="h-3 w-3 text-[#1877F2]" /> Facebook URL</label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     value={form.facebook}
                     onChange={(e) => handleChange('facebook', e.target.value)}
-                    placeholder="https://facebook.com/yourpage"
+                    placeholder="e.g. https://facebook.com/citycalls"
                     className={FIELD_INPUT}
                   />
                 </div>
@@ -156,10 +157,11 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
                 <div>
                   <label className={FIELD_LABEL}><Link2 className="h-3 w-3 text-[#E4405F]" /> Instagram URL</label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     value={form.instagram}
                     onChange={(e) => handleChange('instagram', e.target.value)}
-                    placeholder="https://instagram.com/yourpage"
+                    placeholder="e.g. https://instagram.com/citycalls"
                     className={FIELD_INPUT}
                   />
                 </div>
@@ -167,10 +169,11 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
                 <div>
                   <label className={FIELD_LABEL}><Link2 className="h-3 w-3 text-black" /> Twitter URL</label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     value={form.twitter}
                     onChange={(e) => handleChange('twitter', e.target.value)}
-                    placeholder="https://twitter.com/yourpage"
+                    placeholder="e.g. https://x.com/citycalls"
                     className={FIELD_INPUT}
                   />
                 </div>
@@ -178,10 +181,11 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
                 <div>
                   <label className={FIELD_LABEL}><Link2 className="h-3 w-3 text-[#0A66C2]" /> LinkedIn URL</label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     value={form.linkedin}
                     onChange={(e) => handleChange('linkedin', e.target.value)}
-                    placeholder="https://linkedin.com/company/yourcompany"
+                    placeholder="e.g. https://linkedin.com/company/citycalls"
                     className={FIELD_INPUT}
                   />
                 </div>
@@ -189,10 +193,11 @@ function SocialMediaEditor({ links }: { links: SocialLinks | null | undefined })
                 <div>
                   <label className={FIELD_LABEL}><Link2 className="h-3 w-3 text-[#FF0000]" /> YouTube URL</label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     value={form.youtube}
                     onChange={(e) => handleChange('youtube', e.target.value)}
-                    placeholder="https://youtube.com/@yourchannel"
+                    placeholder="e.g. https://youtube.com/@citycalls"
                     className={FIELD_INPUT}
                   />
                 </div>

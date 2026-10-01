@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Edit, Image as ImageIcon, Plus, Search, Trash2, X } from 'lucide-react';
+import { Edit, Image as ImageIcon, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -9,11 +9,14 @@ import { useUploadFile } from '@/lib/hooks/useFiles';
 import {
   useHeroSlides, useCreateHeroSlide, useUpdateHeroSlide, useDeleteHeroSlide,
   HeroSlide, HeroSlideInput, HeroSlideStatus,
+  DEFAULT_HERO_OVERLAY_OPACITY, MAX_HERO_OVERLAY_OPACITY, heroOverlayGradient,
 } from '@/lib/hooks/useHeroSlides';
 
 const EMPTY_FORM: HeroSlideInput = {
   subtitle: '', titleLine1: '', titleLine2: '', description: '', altText: '',
   sortOrder: 0, status: 'ACTIVE',
+  // null = default overlay (what the website shows today).
+  overlayOpacity: null,
 };
 
 const Toast = Swal.mixin({
@@ -99,6 +102,7 @@ export default function HeroSlidesPage() {
       description: slide.description ?? '',
       altText: slide.altText ?? '',
       sortOrder: slide.sortOrder,
+      overlayOpacity: slide.overlayOpacity ?? null,
       status: slide.status,
     });
     setImageFile(null);
@@ -282,6 +286,54 @@ export default function HeroSlidesPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={imagePreview} alt="Preview" className="mt-3 w-32 h-32 object-cover border-2 border-gray-300 shadow-lg" />
                 )}
+              </div>
+
+              <div className="md:col-span-4">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Overlay Darkness{' '}
+                    <span className="text-xs text-gray-400">(dark shade over the image so the text stays readable)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 text-xs font-bold ${form.overlayOpacity == null ? 'bg-gray-100 text-gray-600' : 'bg-[#3e8914]/10 text-[#3e8914]'}`}>
+                      {form.overlayOpacity ?? DEFAULT_HERO_OVERLAY_OPACITY}%{form.overlayOpacity == null ? ' · Default' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, overlayOpacity: null }))}
+                      disabled={form.overlayOpacity == null}
+                      className="flex items-center gap-1 border-2 border-gray-300 px-2 py-1 text-xs font-bold text-gray-700 hover:border-[#3e8914] hover:text-[#3e8914] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Reset to default
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-semibold text-gray-500">Lighter</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={MAX_HERO_OVERLAY_OPACITY}
+                    step={5}
+                    value={form.overlayOpacity ?? DEFAULT_HERO_OVERLAY_OPACITY}
+                    onChange={(e) => setForm((f) => ({ ...f, overlayOpacity: Number(e.target.value) }))}
+                    className="h-2 flex-1 cursor-pointer accent-[#3e8914]"
+                    aria-label="Overlay darkness"
+                  />
+                  <span className="text-xs font-semibold text-gray-500">Darker</span>
+                </div>
+                {imagePreview && (
+                  <div className="relative mt-3 h-28 w-72 overflow-hidden border-2 border-gray-300 shadow-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0" style={{ backgroundImage: heroOverlayGradient(form.overlayOpacity ?? DEFAULT_HERO_OVERLAY_OPACITY) }} />
+                    <div className="relative flex h-full flex-col justify-end p-3 text-white">
+                      <span className="text-[9px] font-bold uppercase tracking-wider">{form.subtitle || 'Subtitle'}</span>
+                      <span className="text-sm font-bold leading-tight">{form.titleLine1 || 'Title line 1'} <span className="text-[#88be1e]">{form.titleLine2 || 'Highlight'}</span></span>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] text-gray-400">Preview of how the slide text reads on the website. &quot;Reset to default&quot; brings back the current look.</p>
               </div>
 
               <div className="md:col-span-4">

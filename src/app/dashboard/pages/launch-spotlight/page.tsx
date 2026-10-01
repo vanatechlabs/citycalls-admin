@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, Image as ImageIcon, Plus, Save, Sparkles, Trash2, Upload } from 'lucide-react';
+import type { AxiosError } from 'axios';
+import { ExternalLink, Image as ImageIcon, Plus, RotateCcw, Save, Sparkles, Trash2, Upload } from 'lucide-react';
 import Swal from 'sweetalert2';
 
+import type { ApiErrorEnvelope } from '@/lib/api/client';
 import { useUploadFile } from '@/lib/hooks/useFiles';
 import {
+  DEFAULT_SPOTLIGHT_OVERLAY_OPACITY,
+  spotlightOverlayGradient,
   LaunchSpotlightConfig,
   LaunchSpotlightSlide,
   LaunchSpotlightStatus,
@@ -50,6 +54,7 @@ function makeNewSlide(existingCount: number): LaunchSpotlightSlide {
     subheading: '',
     link: '',
     accentColor: '#7cb342',
+    overlayOpacity: null,
     sortOrder: existingCount,
     status: 'ACTIVE',
   };
@@ -92,10 +97,6 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
   }
 
   async function removeSlide(id: string) {
-    if (slides.length === 1) {
-      showToast('warning', 'At least one spotlight slide is required');
-      return;
-    }
     const result = await Swal.fire({
       title: 'Remove this spotlight slide?',
       text: 'The slide will be removed after you save the changes.',
@@ -110,11 +111,6 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
 
   async function saveChanges(event: React.FormEvent) {
     event.preventDefault();
-    const missingImage = slides.find((slide) => !slide.image && !imageFiles[slide.id]);
-    if (missingImage) {
-      showToast('warning', `Please upload an image for ${missingImage.heading || 'the new slide'}`);
-      return;
-    }
 
     try {
       const nextSlides: LaunchSpotlightSlide[] = [];
@@ -132,9 +128,16 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
       setSlides([...saved.slides].sort((a, b) => a.sortOrder - b.sortOrder));
       setImageFiles({});
       setImagePreviews({});
-      showToast('success', 'Launch spotlight updated successfully');
-    } catch {
-      showToast('error', 'Failed to update launch spotlight');
+      // Nothing is required, but an active slide without an image can't be shown.
+      const hiddenForImage = saved.slides.filter((slide) => slide.status === 'ACTIVE' && !slide.image);
+      if (hiddenForImage.length > 0) {
+        showToast('warning', `Saved — ${hiddenForImage.map((s) => s.heading || 'untitled slide').join(', ')} won't show on the website until it has an image`);
+      } else {
+        showToast('success', 'Launch spotlight updated successfully');
+      }
+    } catch (error) {
+      const envelope = (error as AxiosError<ApiErrorEnvelope>)?.response?.data;
+      showToast('error', envelope?.errors?.[0]?.message || envelope?.message || 'Failed to update launch spotlight');
     }
   }
 
@@ -163,11 +166,22 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
 
             <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
               <div>
-                <label className={LABEL}>Spotlight Image <span className="text-red-500">*</span></label>
+                <label className={LABEL}>Spotlight Image</label>
                 <div className="relative flex h-40 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50">
                   {preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt={slide.altText || 'Spotlight preview'} className="h-full w-full object-cover" />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={preview} alt={slide.altText || 'Spotlight preview'} className="h-full w-full object-cover" />
+                      {/* Live preview of the overlay set below */}
+                      <div
+                        className="absolute inset-0"
+                        style={{ backgroundImage: spotlightOverlayGradient(slide.overlayOpacity ?? DEFAULT_SPOTLIGHT_OVERLAY_OPACITY) }}
+                      />
+                      <div className="absolute inset-x-0 bottom-0 p-3 text-white">
+                        <p className="text-sm font-bold leading-tight">{slide.heading || 'Heading'}</p>
+                        <p className="text-[11px] opacity-90">{slide.subheading || 'Subheading'}</p>
+                      </div>
+                    </>
                   ) : (
                     <ImageIcon className="h-10 w-10 text-gray-300" />
                   )}
@@ -176,31 +190,31 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
                   <Upload className="h-4 w-4" /> {slide.image ? 'Replace Image' : 'Upload Image'}
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => handleImage(slide.id, event)} />
                 </label>
-                <p className="mt-2 text-[11px] text-gray-400">JPG, PNG or WebP. Maximum 10 MB.</p>
+                <p className="mt-2 text-[11px] text-gray-400">JPG, PNG or WebP. Maximum 10 MB. A slide without an image isn&apos;t shown on the website.</p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className={LABEL}>New Launch Label <span className="text-red-500">*</span></label>
-                  <input required maxLength={40} className={FIELD} value={slide.badgeText} onChange={(e) => updateSlide(slide.id, { badgeText: e.target.value })} placeholder="NEW LAUNCH" />
+                  <label className={LABEL}>New Launch Label</label>
+                  <input maxLength={40} className={FIELD} value={slide.badgeText} onChange={(e) => updateSlide(slide.id, { badgeText: e.target.value })} placeholder="NEW LAUNCH" />
                 </div>
                 <div>
-                  <label className={LABEL}>Image Alt Text <span className="text-red-500">*</span></label>
-                  <input required maxLength={160} className={FIELD} value={slide.altText} onChange={(e) => updateSlide(slide.id, { altText: e.target.value })} placeholder="Describe the image for accessibility" />
+                  <label className={LABEL}>Image Alt Text</label>
+                  <input maxLength={160} className={FIELD} value={slide.altText} onChange={(e) => updateSlide(slide.id, { altText: e.target.value })} placeholder="Describe the image for accessibility" />
                 </div>
                 <div>
-                  <label className={LABEL}>Heading <span className="text-red-500">*</span></label>
-                  <input required maxLength={80} className={FIELD} value={slide.heading} onChange={(e) => updateSlide(slide.id, { heading: e.target.value })} placeholder="e.g. HelpNow" />
+                  <label className={LABEL}>Heading</label>
+                  <input maxLength={80} className={FIELD} value={slide.heading} onChange={(e) => updateSlide(slide.id, { heading: e.target.value })} placeholder="e.g. HelpNow" />
                 </div>
                 <div>
-                  <label className={LABEL}>Subheading <span className="text-red-500">*</span></label>
-                  <input required maxLength={120} className={FIELD} value={slide.subheading} onChange={(e) => updateSlide(slide.id, { subheading: e.target.value })} placeholder="e.g. Service Under 60 Mins" />
+                  <label className={LABEL}>Subheading</label>
+                  <input maxLength={120} className={FIELD} value={slide.subheading} onChange={(e) => updateSlide(slide.id, { subheading: e.target.value })} placeholder="e.g. Service Under 60 Mins" />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={LABEL}>Page URL / Slide Link <span className="text-red-500">*</span></label>
+                  <label className={LABEL}>Page URL / Slide Link</label>
                   <div className="relative">
                     <ExternalLink className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input required maxLength={500} className={`${FIELD} pl-10`} value={slide.link} onChange={(e) => updateSlide(slide.id, { link: e.target.value })} placeholder="/services/ac-repair or https://example.com/page" />
+                    <input maxLength={500} className={`${FIELD} pl-10`} value={slide.link} onChange={(e) => updateSlide(slide.id, { link: e.target.value })} placeholder="/services/ac-repair or https://example.com/page" />
                   </div>
                 </div>
                 <div>
@@ -209,10 +223,54 @@ function LaunchSpotlightEditor({ initialConfig }: { initialConfig: LaunchSpotlig
                 </div>
                 <div>
                   <label className={LABEL}>Status</label>
-                  <select className={FIELD} value={slide.status} onChange={(e) => updateSlide(slide.id, { status: e.target.value as LaunchSpotlightStatus })}>
+                  <select
+                    className={`w-full border-2 px-3 py-2.5 text-sm font-bold text-white shadow-sm outline-none [&>option]:bg-white [&>option]:text-gray-800 ${
+                      slide.status === 'ACTIVE' ? 'border-[#3e8914] bg-[#3e8914]' : 'border-red-600 bg-red-600'
+                    }`}
+                    value={slide.status}
+                    onChange={(e) => updateSlide(slide.id, { status: e.target.value as LaunchSpotlightStatus })}
+                  >
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
                   </select>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    {slide.status === 'ACTIVE' ? 'Shown on the website after you save.' : 'Hidden from the website after you save.'}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Image Overlay <span className="font-medium normal-case text-gray-400">(dark shade so the text stays readable)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-xs font-bold ${slide.overlayOpacity == null ? 'bg-gray-100 text-gray-600' : 'bg-[#3e8914]/10 text-[#3e8914]'}`}>
+                        {slide.overlayOpacity ?? DEFAULT_SPOTLIGHT_OVERLAY_OPACITY}%{slide.overlayOpacity == null ? ' · Default' : ''}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateSlide(slide.id, { overlayOpacity: null })}
+                        disabled={slide.overlayOpacity == null}
+                        className="flex items-center gap-1 border-2 border-gray-300 bg-white px-2 py-1 text-xs font-bold text-gray-700 hover:border-[#3e8914] hover:text-[#3e8914] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <RotateCcw className="h-3 w-3" /> Reset to default
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-gray-500">Lighter</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={slide.overlayOpacity ?? DEFAULT_SPOTLIGHT_OVERLAY_OPACITY}
+                      onChange={(e) => updateSlide(slide.id, { overlayOpacity: Number(e.target.value) })}
+                      className="h-2 flex-1 cursor-pointer accent-[#3e8914]"
+                      aria-label={`Overlay darkness for spotlight slide ${index + 1}`}
+                    />
+                    <span className="text-xs font-semibold text-gray-500">Darker</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-400">The image preview on the left shows the result. &quot;Reset to default&quot; brings back the current look.</p>
                 </div>
                 <div>
                   <label className={LABEL}>Accent Colour</label>

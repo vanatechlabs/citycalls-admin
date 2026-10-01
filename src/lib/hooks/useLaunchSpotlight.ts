@@ -15,8 +15,20 @@ export interface LaunchSpotlightSlide {
   subheading: string;
   link: string;
   accentColor: string;
+  // Overlay darkness 0–100 %; null/undefined = the website's default.
+  overlayOpacity?: number | null;
   sortOrder: number;
   status: LaunchSpotlightStatus;
+}
+
+// What the website uses when a slide has no overlay set.
+export const DEFAULT_SPOTLIGHT_OVERLAY_OPACITY = 95;
+
+// Same gradient as the website's spotlight card (from-black/95 via-black/40
+// to-black/30), scaled so its bottom edge is `opacity` % dark.
+export function spotlightOverlayGradient(opacity: number): string {
+  const alpha = (value: number) => ((opacity * value) / DEFAULT_SPOTLIGHT_OVERLAY_OPACITY / 100).toFixed(3);
+  return `linear-gradient(to top, rgba(0,0,0,${alpha(95)}), rgba(0,0,0,${alpha(40)}), rgba(0,0,0,${alpha(30)}))`;
 }
 
 export interface LaunchSpotlightConfig {
