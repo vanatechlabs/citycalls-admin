@@ -7,7 +7,7 @@ import { STAGE_SLUGS, StageSlug } from '@/lib/registrations/constants';
 
 // /dashboard/registrations/list/[category]/[stage]
 //   category: a Navbar List menu slug, or "all"
-//   stage:    all | pending | active | completed
+//   stage:    all | new | active | pending | reopen | closed | cancelled
 export default function RegistrationListPage({ params }: { params: Promise<{ category: string; stage: string }> }) {
   const { category, stage } = use(params);
   if (!STAGE_SLUGS.includes(stage as StageSlug)) notFound();

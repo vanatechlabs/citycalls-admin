@@ -17,9 +17,7 @@ export function StatusBadge({ status, size = 'sm' }: { status: RegistrationStatu
 export function SourceBadge({ source }: { source: 'ADMIN' | 'WEBSITE' }) {
   return (
     <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[8.5px] font-bold leading-tight ${
-        source === 'WEBSITE' ? 'border border-purple-200 bg-purple-50 text-purple-600' : 'border border-orange-200 bg-orange-50 text-orange-700'
-      }`}
+      className="inline-flex items-center rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[8.5px] font-bold leading-tight text-purple-600"
     >
       {source === 'WEBSITE' ? 'WEBSITE' : 'ADMIN'}
     </span>

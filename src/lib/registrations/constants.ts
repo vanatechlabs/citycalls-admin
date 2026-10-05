@@ -1,4 +1,4 @@
-import type { IssueFrequency, RegistrationStatus } from '@/lib/hooks/useRegistrations';
+import type { IssueFrequency, MoveStatus, RegistrationStatus } from '@/lib/hooks/useRegistrations';
 
 export const STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana',
@@ -41,63 +41,108 @@ export const MAX_PHOTOS = 5;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export const REGISTRATION_STATUSES: RegistrationStatus[] = ['PENDING', 'ACTIVE', 'COMPLETED'];
+// Call lifecycle (same as the backend): every move is made with a note.
+//   New → Active / Pending / Cancelled
+//   Active ⇄ Pending, either → Closed (work done)
+//   Closed → Reopened → Active / Pending / Closed
+export const REGISTRATION_STATUSES: RegistrationStatus[] = ['NEW', 'ACTIVE', 'PENDING', 'REOPENED', 'CLOSED', 'CANCELLED'];
+
+export const STATUS_TRANSITIONS: Record<RegistrationStatus, MoveStatus[]> = {
+  NEW: ['ACTIVE', 'PENDING', 'CANCELLED'],
+  ACTIVE: ['PENDING', 'CLOSED'],
+  PENDING: ['ACTIVE', 'CLOSED'],
+  REOPENED: ['ACTIVE', 'PENDING', 'CLOSED'],
+  CLOSED: ['REOPENED'],
+  CANCELLED: [],
+};
 
 // ─── List pages: /dashboard/registrations/list/[category]/[stage] ──────────
 // category is a Navbar List menu slug, or "all"; stage is one of STAGE_SLUGS.
-export type StageSlug = 'all' | 'pending' | 'active' | 'completed';
-export const STAGE_SLUGS: StageSlug[] = ['all', 'pending', 'active', 'completed'];
+export type StageSlug = 'all' | 'new' | 'active' | 'pending' | 'reopen' | 'closed' | 'cancelled';
+export const STAGE_SLUGS: StageSlug[] = ['all', 'new', 'active', 'pending', 'reopen', 'closed', 'cancelled'];
+// The sidebar lists every stage except "all" (that one is a tab on the page).
+export const SIDEBAR_STAGE_SLUGS: StageSlug[] = STAGE_SLUGS.filter((slug) => slug !== 'all');
 export const ALL_CATEGORIES = 'all';
 
 export const STAGE_BY_SLUG: Record<StageSlug, RegistrationStatus | undefined> = {
-  all: undefined, pending: 'PENDING', active: 'ACTIVE', completed: 'COMPLETED',
+  all: undefined, new: 'NEW', active: 'ACTIVE', pending: 'PENDING', reopen: 'REOPENED', closed: 'CLOSED', cancelled: 'CANCELLED',
+};
+const SLUG_BY_STATUS: Record<RegistrationStatus, StageSlug> = {
+  NEW: 'new', ACTIVE: 'active', PENDING: 'pending', REOPENED: 'reopen', CLOSED: 'closed', CANCELLED: 'cancelled',
 };
 export const STAGE_TITLE: Record<StageSlug, string> = {
-  all: 'All Registration', pending: 'Pending Registration', active: 'Active Registration', completed: 'Completed Registration',
+  all: 'All Calls', new: 'New Call', active: 'Active Call', pending: 'Pending Call',
+  reopen: 'Reopen Call', closed: 'Closed Call', cancelled: 'Cancelled Call',
 };
-export const STAGE_TAB_LABEL: Record<StageSlug, string> = { all: 'All', pending: 'Pending', active: 'Active', completed: 'Completed' };
+export const STAGE_TAB_LABEL: Record<StageSlug, string> = {
+  all: 'All', new: 'New', active: 'Active', pending: 'Pending', reopen: 'Reopen', closed: 'Closed', cancelled: 'Cancelled',
+};
 
 export function stageSlugOf(status: RegistrationStatus): StageSlug {
-  return status.toLowerCase() as StageSlug;
+  return SLUG_BY_STATUS[status];
 }
 
-export function registrationListPath(categorySlug: string = ALL_CATEGORIES, stage: StageSlug = 'pending') {
+export function registrationListPath(categorySlug: string = ALL_CATEGORIES, stage: StageSlug = 'new') {
   return `/dashboard/registrations/list/${categorySlug}/${stage}`;
 }
 
-// Everything the UI needs per status: badge colours, its title, and the
-// action that moves a registration on to the next stage (with a note).
+// Everything the UI needs per status: badge colours, its list title, and —
+// for statuses a call can be moved to — the action wording for the note popup.
 export const STATUS_META: Record<RegistrationStatus, {
   label: string;
   badge: string;
   listTitle: string;
-  next?: { status: 'ACTIVE' | 'COMPLETED'; action: string; noteTitle: string; notePlaceholder: string };
+  // Solid button colour for the "move to this status" action.
+  button: string;
+  action: string;
+  notePlaceholder: string;
 }> = {
-  PENDING: {
-    label: 'Pending',
-    badge: 'border-orange-300 bg-orange-50 text-orange-700',
-    listTitle: 'Pending Registration',
-    next: {
-      status: 'ACTIVE',
-      action: 'Move to Active',
-      noteTitle: 'Move to Active Registration',
-      notePlaceholder: 'e.g. Called customer, technician Ramesh assigned for 29 Sep 1–3 PM',
-    },
+  NEW: {
+    label: 'New',
+    badge: 'border-sky-300 bg-sky-50 text-sky-700',
+    listTitle: 'New Call',
+    button: 'bg-sky-600 hover:bg-sky-700',
+    action: 'New',
+    notePlaceholder: '',
   },
   ACTIVE: {
     label: 'Active',
     badge: 'border-indigo-300 bg-indigo-50 text-indigo-700',
-    listTitle: 'Active Registration',
-    next: {
-      status: 'COMPLETED',
-      action: 'Mark as Completed',
-      noteTitle: 'Complete Registration',
-      notePlaceholder: 'e.g. Gas refilled, compressor checked, customer paid ₹1,200 by UPI',
-    },
+    listTitle: 'Active Call',
+    button: 'bg-indigo-600 hover:bg-indigo-700',
+    action: 'Move to Active',
+    notePlaceholder: 'e.g. Called customer, technician Ramesh assigned for 29 Sep 1–3 PM',
   },
-  COMPLETED: {
-    label: 'Completed',
+  PENDING: {
+    label: 'Pending',
+    badge: 'border-orange-300 bg-orange-50 text-orange-700',
+    listTitle: 'Pending Call',
+    button: 'bg-orange-500 hover:bg-orange-600',
+    action: 'Move to Pending',
+    notePlaceholder: 'e.g. Customer asked to call back tomorrow / spare part on order',
+  },
+  REOPENED: {
+    label: 'Reopened',
+    badge: 'border-purple-300 bg-purple-50 text-purple-700',
+    listTitle: 'Reopen Call',
+    button: 'bg-purple-600 hover:bg-purple-700',
+    action: 'Reopen Call',
+    notePlaceholder: 'e.g. Cooling problem came back after 5 days — revisit needed',
+  },
+  CLOSED: {
+    label: 'Closed',
     badge: 'border-[#a5d6a7] bg-[#e8f5e9] text-[#23714a]',
-    listTitle: 'Completed Registration',
+    listTitle: 'Closed Call',
+    button: 'bg-[#3e8914] hover:bg-[#347311]',
+    action: 'Close Call (work done)',
+    notePlaceholder: 'e.g. Gas refilled, compressor checked, customer paid ₹1,200 by UPI',
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    badge: 'border-red-300 bg-red-50 text-red-700',
+    listTitle: 'Cancelled Call',
+    button: 'bg-red-600 hover:bg-red-700',
+    action: 'Cancel Call',
+    notePlaceholder: 'e.g. Customer no longer needs the service',
   },
 };

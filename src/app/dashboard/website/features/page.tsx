@@ -197,32 +197,18 @@ function FeaturesForm({ existing }: { existing: HomeFeatures }) {
             {form.items.map((item, index) => {
               const Icon = ICONS[item.icon]?.icon ?? Wrench;
               return (
-                <div key={index} className="border-2 border-gray-200 p-3">
-                  <div className="flex items-center gap-2">
+                <div key={index} className="min-w-0 border-2 border-gray-200 p-3">
+                  {/* Card header: number, icon preview, remove */}
+                  <div className="mb-3 flex items-center gap-2">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-gray-200 text-[11px] font-bold text-gray-500">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-[#3e8914]/30 bg-[#3e8914]/5 text-[#3e8914]">
                       <Icon className="h-4 w-4" />
                     </span>
-                    <select
-                      value={item.icon}
-                      onChange={(e) => updateItem(index, { icon: e.target.value as FeatureIcon })}
-                      className={`${FIELD_INPUT} w-36 shrink-0 cursor-pointer`}
-                      aria-label={`Card ${index + 1} icon`}
-                    >
-                      {FEATURE_ICONS.map((key) => (
-                        <option key={key} value={key}>{ICONS[key].label}</option>
-                      ))}
-                    </select>
-                    <input
-                      value={item.title}
-                      maxLength={60}
-                      onChange={(e) => updateItem(index, { title: e.target.value })}
-                      placeholder="Title, e.g. Expert Plumbers"
-                      className={FIELD_INPUT}
-                      aria-label={`Card ${index + 1} title`}
-                    />
+                    <span className="min-w-0 flex-1 truncate text-xs font-bold text-gray-700">
+                      Service {String(index + 1).padStart(2, '0')}{item.title ? ` — ${item.title}` : ''}
+                    </span>
                     <button
                       type="button"
                       onClick={() => update('items', form.items.filter((_, i) => i !== index))}
@@ -232,14 +218,38 @@ function FeaturesForm({ existing }: { existing: HomeFeatures }) {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <input
-                    value={item.description}
-                    maxLength={200}
-                    onChange={(e) => updateItem(index, { description: e.target.value })}
-                    placeholder="Short description, e.g. Quick and reliable plumbing services for leaks, fittings, and repairs."
-                    className={`${FIELD_INPUT} mt-2`}
-                    aria-label={`Card ${index + 1} description`}
-                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <Field label="Card Heading" required className="min-w-0 md:col-span-2">
+                      <input
+                        value={item.title}
+                        maxLength={60}
+                        onChange={(e) => updateItem(index, { title: e.target.value })}
+                        placeholder="e.g. Expert Plumbers"
+                        className={FIELD_INPUT}
+                      />
+                    </Field>
+                    <Field label="Icon" className="min-w-0">
+                      <select
+                        value={item.icon}
+                        onChange={(e) => updateItem(index, { icon: e.target.value as FeatureIcon })}
+                        className={`${FIELD_INPUT} cursor-pointer`}
+                      >
+                        {FEATURE_ICONS.map((key) => (
+                          <option key={key} value={key}>{ICONS[key].label}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Description" className="min-w-0 md:col-span-3">
+                      <input
+                        value={item.description}
+                        maxLength={200}
+                        onChange={(e) => updateItem(index, { description: e.target.value })}
+                        placeholder="e.g. Quick and reliable plumbing services for leaks, fittings, and repairs."
+                        className={FIELD_INPUT}
+                      />
+                    </Field>
+                  </div>
                 </div>
               );
             })}

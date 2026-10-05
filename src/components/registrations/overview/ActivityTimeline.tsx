@@ -1,18 +1,21 @@
-import { CheckCheck, CirclePlus, PlayCircle } from 'lucide-react';
+import { CheckCheck, CirclePlus, Clock, PlayCircle, RotateCcw, XCircle } from 'lucide-react';
 import type { Registration, RegistrationStatus } from '@/lib/hooks/useRegistrations';
-import { STATUS_META } from '@/lib/registrations/constants';
+import { STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
 import { formatDate, formatTime } from '@/lib/registrations/format';
 
 const STEP_STYLE: Record<RegistrationStatus, { icon: typeof CirclePlus; dot: string; card: string; title: string }> = {
-  PENDING: { icon: CirclePlus, dot: 'bg-orange-500', card: 'border-orange-200 bg-orange-50/50', title: 'Registered — Pending' },
+  NEW: { icon: CirclePlus, dot: 'bg-sky-500', card: 'border-sky-200 bg-sky-50/50', title: 'New call received' },
   ACTIVE: { icon: PlayCircle, dot: 'bg-indigo-500', card: 'border-indigo-200 bg-indigo-50/50', title: 'Moved to Active' },
-  COMPLETED: { icon: CheckCheck, dot: 'bg-[#3e8914]', card: 'border-green-200 bg-green-50/60', title: 'Completed' },
+  PENDING: { icon: Clock, dot: 'bg-orange-500', card: 'border-orange-200 bg-orange-50/50', title: 'Moved to Pending' },
+  REOPENED: { icon: RotateCcw, dot: 'bg-purple-500', card: 'border-purple-200 bg-purple-50/50', title: 'Reopened' },
+  CLOSED: { icon: CheckCheck, dot: 'bg-[#3e8914]', card: 'border-green-200 bg-green-50/60', title: 'Closed — work done' },
+  CANCELLED: { icon: XCircle, dot: 'bg-red-500', card: 'border-red-200 bg-red-50/50', title: 'Cancelled' },
 };
 
 // Every stage move with its note, who did it and when — newest last.
 export function ActivityTimeline({ registration }: { registration: Registration }) {
   const history = registration.statusHistory ?? [];
-  const next = STATUS_META[registration.status].next;
+  const nextOptions = STATUS_TRANSITIONS[registration.status];
 
   if (history.length === 0) {
     return <p className="text-xs italic text-slate-400">No activity recorded yet.</p>;
@@ -40,10 +43,10 @@ export function ActivityTimeline({ registration }: { registration: Registration 
           </li>
         );
       })}
-      {next && (
+      {nextOptions.length > 0 && (
         <li className="relative">
           <span className="absolute -left-[33px] top-1 h-5 w-5 rounded-full border-2 border-dashed border-slate-300 bg-white" />
-          <p className="pt-1 text-[11.5px] font-medium italic text-slate-400">Next: {next.action.toLowerCase()} (with a note).</p>
+          <p className="pt-1 text-[11.5px] font-medium italic text-slate-400">Next: {nextOptions.map((status) => STATUS_META[status].action.toLowerCase()).join(' / ')} (with a note).</p>
         </li>
       )}
     </ol>

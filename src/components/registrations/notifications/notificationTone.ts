@@ -44,3 +44,21 @@ export function playNotificationTone() {
   note(ctx, 1318.5, t + 0.9, 0.35);
   note(ctx, 987.8, t + 1.08, 0.55);
 }
+
+// Renewal reminder alarm — quick rising beeps; more of them when it's urgent.
+export function playAlarmTone(urgent: boolean) {
+  const ctx = getContext();
+  if (!ctx || ctx.state !== 'running') return false;
+  const t = ctx.currentTime;
+  const beeps = urgent ? 3 : 2;
+  for (let i = 0; i < beeps; i++) {
+    note(ctx, 880, t + i * 0.42, 0.14);
+    note(ctx, 1174.7, t + i * 0.42 + 0.16, 0.2);
+  }
+  return true;
+}
+
+// True once audio can play (after the first click / key press).
+export function isToneUnlocked() {
+  return getContext()?.state === 'running';
+}

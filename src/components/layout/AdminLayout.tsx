@@ -4,7 +4,9 @@ import React from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminNavbar } from './AdminNavbar';
+import { MenuAccessGuard } from './MenuAccessGuard';
 import { RegistrationNotifier } from '@/components/registrations/notifications/RegistrationNotifier';
+import { ServerExpiryNotifier } from '@/components/server-assets/ServerExpiryNotifier';
 import { BeautyModeContext, useBeautyModeState } from '@/lib/hooks/useBeautyMode';
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -22,12 +24,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <div className="flex-1 flex flex-col min-h-screen min-w-0 bg-gray-100">
             <AdminNavbar />
             <main className="flex-1 p-6 overflow-auto">
-              {children}
+              {/* Pages behind menus hidden by Menu Access can't be opened by URL either */}
+              <MenuAccessGuard>{children}</MenuAccessGuard>
             </main>
           </div>
         </div>
         {/* New-registration popup + chime, on every admin page */}
         <RegistrationNotifier />
+        {/* Domain / hosting renewal reminders */}
+        <ServerExpiryNotifier />
       </SidebarProvider>
     </BeautyModeContext.Provider>
   );

@@ -15,13 +15,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { PermissionGate } from '@/components/ui/PermissionGate';
-import { clearSession } from '@/lib/hooks/useAuth';
+import { clearSession, useMe } from '@/lib/hooks/useAuth';
 import {
   LayoutDashboard,
   Settings,
-  Users,
   Building2,
   Network,
   Users2,
@@ -54,14 +54,19 @@ import {
   Sparkles,
   MessageSquareWarning,
   ChevronDown,
+  ChevronLeft,
+  LogOut,
   GalleryHorizontal,
-  UserPlus,
-  Menu,
   Search,
   Share2,
   Cog,
   HelpCircle,
   Gift,
+  Server,
+  Hash,
+  UserCog,
+  Package,
+  Info,
   ClipboardPlus,
   Refrigerator,
   Bug,
@@ -73,7 +78,7 @@ import {
   Images
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
-import { ALL_CATEGORIES, registrationListPath, STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
+import { ALL_CATEGORIES, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -81,7 +86,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 // exactly (src/modules/*/​*.routes.ts's requirePermission(module, action)
 // calls) — not a frontend-invented naming scheme. Cross-check against
 // docs/openapi/citycalls.yaml before adding a new item.
-interface NavItem {
+export interface NavItem {
   title: string;
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -91,12 +96,20 @@ interface NavItem {
   alwaysVisible?: boolean;
   // A parent item that expands into its own sub-links (e.g. "SEO Manager")
   // instead of navigating anywhere itself — url is unused when this is set.
-  children?: { title: string; url: string; badge?: number }[];
+  children?: { title: string; url: string; badge?: number; module?: string; action?: string }[];
+  // Children are separate entries in Menu Access ("<Section>::<Child>")
+  // instead of the parent counting as one menu.
+  childAccess?: boolean;
   // Red count pill on the item (e.g. unread registrations).
   badge?: number;
 }
 
-const navItems: { group: string; items: NavItem[] }[] = [
+// Key a menu is saved under in a user's Menu Access list.
+export function menuKey(group: string, title: string) {
+  return `${group}::${title}`;
+}
+
+export const navItems: { group: string; items: NavItem[] }[] = [
   {
     group: 'Main',
     items: [
@@ -109,6 +122,10 @@ const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Hero Carousel', url: '/dashboard/website/hero-slides', icon: GalleryHorizontal, module: 'marketing' },
       { title: 'Offers & Promotions', url: '/dashboard/website/offers', icon: Gift, module: 'marketing' },
       { title: 'Features', url: '/dashboard/website/features', icon: LayoutGrid, module: 'marketing' },
+      { title: 'About', url: '/dashboard/website/about', icon: Info, module: 'marketing' },
+      { title: 'Popular Packages', url: '/dashboard/website/popular-packages', icon: Package, module: 'marketing' },
+      { title: 'Our Services', url: '/dashboard/website/our-services', icon: LayoutGrid, module: 'marketing' },
+      { title: 'Counters', url: '/dashboard/website/counters', icon: Hash, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
     ],
   },
@@ -263,10 +280,20 @@ const navItems: { group: string; items: NavItem[] }[] = [
   {
     group: 'Admin Section',
     items: [
+      {
+        title: 'Manage Admin User',
+        icon: UserCog,
+        anyOf: [{ module: 'users' }, { module: 'config' }],
+        childAccess: true,
+        children: [
+          { title: 'Roles & Permissions', url: '/dashboard/roles', module: 'users' },
+          { title: 'Staff & Team Members', url: '/dashboard/staff', module: 'users' },
+          { title: 'Navbar List', url: '/dashboard/navbar-list', module: 'config' },
+          { title: 'Menu Access', url: '/dashboard/menu-access', module: 'users', action: 'manageSettings' },
+        ],
+      },
       { title: 'Masters', url: '/dashboard/masters', icon: Settings, module: 'config' },
-      { title: 'Roles & Permissions', url: '/dashboard/roles', icon: Users, module: 'users' },
-      { title: 'Staff & Team Members', url: '/dashboard/staff', icon: UserPlus, module: 'users' },
-      { title: 'Navbar List', url: '/dashboard/navbar-list', icon: Menu, module: 'config' },
+      { title: 'Server Management', url: '/dashboard/server-management', icon: Server, module: 'config' },
       { title: 'Settings', url: '/dashboard/settings', icon: Cog, module: 'config' },
     ],
   },
@@ -283,30 +310,31 @@ function categoryIcon(slug: string): React.ComponentType<{ className?: string }>
   return Layers;
 }
 
-function useRegistrationCategoryItems(): NavItem[] {
+export function useRegistrationCategoryItems(): NavItem[] {
   const { data: menus = [] } = useRegistrationServices();
   // Red badges: registrations nobody has opened yet, per category.
   const { data: unread } = useUnreadRegistrations();
+  // Each category from Navbar List, then "All Categories" last.
   const categories = [
-    { slug: ALL_CATEGORIES, name: 'All Categories', icon: LayoutGrid, badge: unread?.total, pendingBadge: unread?.pendingTotal },
     ...menus.map((m) => ({
       slug: m.slug,
       name: m.name,
       icon: categoryIcon(m.slug),
       badge: unread?.byCategory[m.name],
-      pendingBadge: unread?.pendingByCategory?.[m.name],
+      newBadge: unread?.newByCategory?.[m.name],
     })),
+    { slug: ALL_CATEGORIES, name: 'All Categories', icon: LayoutGrid, badge: unread?.total, newBadge: unread?.newTotal },
   ];
   return categories.map((category) => ({
     title: category.name,
     icon: category.icon,
     module: 'customers',
     badge: category.badge,
-    children: STAGE_SLUGS.map((stage) => ({
+    children: SIDEBAR_STAGE_SLUGS.map((stage) => ({
       title: STAGE_TITLE[stage],
       url: registrationListPath(category.slug, stage),
-      // New requests still waiting in Pending.
-      badge: stage === 'pending' ? category.pendingBadge : undefined,
+      // Unopened calls still waiting in New.
+      badge: stage === 'new' ? category.newBadge : undefined,
     })),
   }));
 }
@@ -339,10 +367,31 @@ function AdminSidebarContent() {
   // string, so both would otherwise show as active at once.
   const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
   const { isBeautyMode } = useBeautyMode();
+  // Desktop collapse (icons only), toggled from the button next to the logo.
+  const { state: sidebarState, toggleSidebar, setOpen: setSidebarOpen } = useSidebar();
+  const collapsed = sidebarState === 'collapsed';
   const registrationCategoryItems = useRegistrationCategoryItems();
-  const groups = navItems.map((group) =>
-    group.group === 'Registration Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
-  );
+  // Menu Access (set by Super Admin per user): only the chosen menus show.
+  // Super Admin and users without a saved list see everything.
+  const { data: me } = useMe();
+  const allowedMenus = me && me.role !== 'SUPER_ADMIN' && Array.isArray(me.menuAccess) ? new Set(me.menuAccess) : null;
+  const groups = navItems
+    .map((group) =>
+      group.group === 'Registration Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
+    )
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) =>
+          item.childAccess && allowedMenus
+            ? { ...item, children: item.children?.filter((child) => allowedMenus.has(menuKey(group.group, child.title))) }
+            : item
+        )
+        .filter((item) =>
+          item.alwaysVisible || !allowedMenus || (item.childAccess ? !!item.children?.length : allowedMenus.has(menuKey(group.group, item.title)))
+        ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   // Manual open/close overrides from clicking a trigger — a submenu with no
   // override yet falls back to auto-opening when the current route is one
@@ -371,6 +420,7 @@ function AdminSidebarContent() {
 
   return (
     <Sidebar
+      collapsible="icon"
       className={
         isBeautyMode
           ? 'border-r border-pink-200 [&_[data-sidebar=sidebar]]:bg-white text-pink-950'
@@ -380,20 +430,32 @@ function AdminSidebarContent() {
       <SidebarHeader
         className={
           isBeautyMode
-            ? 'h-14 flex justify-center items-center px-4 border-b border-pink-200 bg-white'
-            : 'h-14 flex justify-center items-center px-4 border-b border-[#3e8914]/30 bg-gradient-to-r from-white to-[#3e8914]/5'
+            ? 'h-14 flex flex-row justify-between items-center px-3 border-b border-pink-200 bg-white group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
+            : 'h-14 flex flex-row justify-between items-center px-3 border-b border-[#3e8914]/30 bg-gradient-to-r from-white to-[#3e8914]/5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
         }
       >
-        <h1 className="text-3xl font-bold">
+        <Link href="/dashboard" className="flex min-w-0 items-center pl-3.5 group-data-[collapsible=icon]:hidden" aria-label="CityCalls dashboard">
           {isBeautyMode ? (
-            <span className="text-pink-500">CityCalls</span>
+            <span className="text-3xl font-bold text-pink-500">CityCalls</span>
           ) : (
-            <>
-              <span className="text-[#3e8914]">City</span>
-              <span className="text-gray-900">Calls</span>
-            </>
+            // The brand wordmark (green "City", dark "Calls") — logo-dark.png is
+            // logo.png with the white "Calls" darkened for the white sidebar.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/logo-dark.png" alt="CityCalls" className="h-8 w-auto max-w-[150px] object-contain" />
           )}
-        </h1>
+        </Link>
+        {/* Collapse / expand (desktop) — on mobile the navbar button opens the drawer */}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-md text-white shadow-sm transition-colors md:flex ${
+            isBeautyMode ? 'bg-pink-500 hover:bg-pink-600' : 'bg-[#3e8914] hover:bg-[#347311]'
+          }`}
+        >
+          <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} />
+        </button>
       </SidebarHeader>
       <SidebarContent
         className={
@@ -406,19 +468,16 @@ function AdminSidebarContent() {
         {groups.map((group) => {
           return (
           <Collapsible key={group.group} defaultOpen className="group/collapsible">
-            <SidebarGroup className="py-0 pb-1 mb-1 border-b border-black/15">
+            <SidebarGroup className="py-0 pb-1 mb-1 border-b border-black/15 group-data-[collapsible=icon]:py-1">
               <CollapsibleTrigger
                 nativeButton={false}
                 render={
                   <SidebarGroupLabel
-                    className={`h-6 w-full flex items-center justify-between cursor-pointer text-[9.5px] uppercase font-bold tracking-[0.035em] ${isBeautyMode ? 'text-pink-400 hover:text-pink-500' : 'text-[#0F2854] hover:text-[#0a1c3a]'}`}
+                    className={`h-6 w-full flex items-center justify-between cursor-pointer text-[9.5px] uppercase font-bold tracking-[0.035em] group-data-[collapsible=icon]:hidden ${isBeautyMode ? 'text-pink-400 hover:text-pink-500' : 'text-[#233D4D] hover:text-[#16283a]'}`}
                   />
                 }
               >
                 {group.group}
-                {group.group !== 'Main' && (
-                  <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                )}
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent>
@@ -432,8 +491,10 @@ function AdminSidebarContent() {
                           >
                             <SidebarMenuItem>
                               <CollapsibleTrigger
+                                onClick={() => collapsed && setSidebarOpen(true)}
                                 render={
                                   <SidebarMenuButton
+                                    tooltip={item.title}
                                     className={
                                       isBeautyMode
                                         ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 transition-colors'
@@ -450,9 +511,15 @@ function AdminSidebarContent() {
                               </CollapsibleTrigger>
                             </SidebarMenuItem>
                             <CollapsibleContent>
-                              <SidebarMenu className="border-l border-black/10 pl-4 text-[12px] font-medium">
+                              {/* Left rail under the parent's icon marks how far the open submenu goes */}
+                              <SidebarMenu
+                                className={`my-1 ml-4 w-auto border-l pl-3 text-[12px] font-medium group-data-[collapsible=icon]:hidden ${
+                                  isBeautyMode ? 'border-pink-300' : 'border-[#3e8914]/35'
+                                }`}
+                              >
                                 {item.children.map((child) => (
-                                  <SidebarMenuItem key={child.title}>
+                                  <PermissionGate key={child.title} module={child.module} action={child.action} alwaysVisible={!child.module}>
+                                  <SidebarMenuItem>
                                     <SidebarMenuButton
                                       render={<Link href={child.url} />}
                                       isActive={currentUrl === child.url}
@@ -467,6 +534,7 @@ function AdminSidebarContent() {
                                       <CountBadge count={child.badge} className="ml-auto" />
                                     </SidebarMenuButton>
                                   </SidebarMenuItem>
+                                  </PermissionGate>
                                 ))}
                               </SidebarMenu>
                             </CollapsibleContent>
@@ -476,6 +544,7 @@ function AdminSidebarContent() {
                         <PermissionGate key={item.title} module={item.module} action={item.action} anyOf={item.anyOf} alwaysVisible={item.alwaysVisible}>
                           <SidebarMenuItem>
                             <SidebarMenuButton
+                              tooltip={item.title}
                               render={<Link href={item.url ?? '#'} />}
                               isActive={currentUrl === item.url}
                               className={
@@ -503,9 +572,11 @@ function AdminSidebarContent() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+          title="Logout"
+          className="flex w-full items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors group-data-[collapsible=icon]:px-0"
         >
-          Logout
+          <LogOut className="hidden h-4 w-4 group-data-[collapsible=icon]:block" />
+          <span className="group-data-[collapsible=icon]:hidden">Logout</span>
         </button>
       </SidebarFooter>
     </Sidebar>

@@ -31,6 +31,8 @@ export interface User {
   createdBy?: UserActor | null;
   updatedBy?: UserActor | null;
   lastLoginAt?: string;
+  // Sidebar menus this user sees ("<Section>::<Menu>"); unset = all.
+  menuAccess?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -95,5 +97,20 @@ export function useDeleteUser() {
       await apiClient.delete(`/users/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
+// Admin Section → Menu Access (Super Admin only). null = every menu.
+export function useUpdateMenuAccess() {
+  const queryClient = useQueryClient();
+  return useMutation<User, AxiosError<ApiErrorEnvelope>, { id: string; menuAccess: string[] | null }>({
+    mutationFn: async ({ id, menuAccess }) => {
+      const res = await apiClient.put<ApiSuccessEnvelope<User>>(`/users/${id}/menu-access`, { menuAccess });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] });
+      void queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
   });
 }

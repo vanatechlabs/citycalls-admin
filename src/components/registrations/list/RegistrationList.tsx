@@ -16,10 +16,9 @@ import { downloadRegistrationsCsv } from '@/lib/registrations/exportCsv';
 import { todayISO, toISODate } from '@/lib/registrations/format';
 import { PageShell } from '../shared/PageShell';
 import { useStageTransition } from '../shared/useStageTransition';
-import { RegistrationStageTabs } from './RegistrationStageTabs';
 import { RegistrationStatsCards } from './RegistrationStatsCards';
 import { RegistrationTable } from './RegistrationTable';
-import { RegistrationToolbar, ToolbarFilters } from './RegistrationToolbar';
+import { RegistrationFilterControls, RegistrationToolbar, ToolbarFilters } from './RegistrationToolbar';
 import { TablePagination } from './TablePagination';
 
 const PAGE_SIZE = 10;
@@ -29,10 +28,13 @@ const INITIAL_FILTERS: ToolbarFilters = {
 };
 
 const STAGE_DESCRIPTION: Record<StageSlug, string> = {
-  all: 'Every registration in every stage — tick or complete straight from here.',
-  pending: 'New registrations waiting to be picked up — tick one to move it to Active with a note.',
-  active: 'Registrations the team is working on — mark one complete with a closing note.',
-  completed: 'Closed registrations with their active and completion notes.',
+  all: 'Every call in every status — change any status (with a note) straight from here.',
+  new: 'Fresh calls nobody has worked on yet — move one to Active, Pending or Cancelled with a note.',
+  active: 'Calls the team is working on — move to Pending, or close once the work is done.',
+  pending: 'Calls on hold (call back, part awaited…) — move back to Active, or close when done.',
+  reopen: 'Closed calls the customer came back about — move to Active / Pending or close again.',
+  closed: 'Work done — reopen a call (with a note) if the customer comes back.',
+  cancelled: 'New calls that were cancelled, with the reason noted.',
 };
 
 // Turns the toolbar's date preset into the API's from/to (YYYY-MM-DD).
@@ -70,7 +72,7 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
-  const { moveToNextStage } = useStageTransition();
+  const { changeStatus } = useStageTransition();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
@@ -120,8 +122,8 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
     setSelectedIds([]);
   }
 
-  async function handleAdvance(row: Registration) {
-    const updated = await moveToNextStage(row);
+  async function handleChangeStatus(row: Registration) {
+    const updated = await changeStatus(row);
     if (updated) setSelectedIds((ids) => ids.filter((id) => id !== row._id));
   }
 
@@ -200,7 +202,7 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
     <PageShell
       title={<>{categoryName} <span className="ml-1 text-[#3e8914]">- {STAGE_TITLE[stageSlug]}</span></>}
       description={STAGE_DESCRIPTION[stageSlug]}
-      actions={<RegistrationStageTabs categorySlug={categorySlug} active={stageSlug} counts={stats?.byStatus} />}
+      actions={<RegistrationFilterControls filters={filters} onChange={changeFilters} services={serviceOptions} />}
     >
       <div className="space-y-8">
         <RegistrationStatsCards
@@ -215,7 +217,6 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
             title={`${STAGE_TITLE[stageSlug]} List`}
             filters={filters}
             onChange={changeFilters}
-            services={serviceOptions}
             shown={rows.length}
             total={total}
             selectedCount={selectedIds.length}
@@ -240,7 +241,7 @@ export function RegistrationList({ categorySlug, stageSlug }: RegistrationListPr
             onSelectionChange={setSelectedIds}
             onView={(row) => router.push(`/dashboard/registrations/${row._id}`)}
             onEdit={(row) => router.push(`/dashboard/registrations/${row._id}/edit`)}
-            onAdvance={handleAdvance}
+            onChangeStatus={handleChangeStatus}
             onDelete={handleDelete}
           />
 

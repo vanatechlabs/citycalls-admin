@@ -54,4 +54,6 @@ export interface MeResponse {
   teamId?: string;
   vendorId?: string;
   permissions: Record<string, Record<string, string>>;
+  // Sidebar menus this user sees ("<Section>::<Menu>"); unset = all.
+  menuAccess?: string[];
 }

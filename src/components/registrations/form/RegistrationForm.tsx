@@ -167,7 +167,7 @@ export function RegistrationForm({ registration }: { registration?: Registration
     const result = await Swal.fire({
       icon: photoFailed ? 'warning' : 'success',
       title: 'Registration created',
-      html: `Registration No: <b>${saved.registrationNo}</b><br/><small>Added to Pending Registration.</small>${photoFailed ? '<br/><small>Photos could not be uploaded.</small>' : ''}`,
+      html: `Registration No: <b>${saved.registrationNo}</b><br/><small>Added to New Call.</small>${photoFailed ? '<br/><small>Photos could not be uploaded.</small>' : ''}`,
       showCancelButton: true,
       confirmButtonText: 'View Registration',
       cancelButtonText: 'Create Another',

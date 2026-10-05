@@ -69,7 +69,7 @@ export function RegistrationNotifier() {
       ))}
       {hidden > 0 && (
         <Link
-          href="/dashboard/registrations/list/all/pending"
+          href="/dashboard/registrations/list/all/new"
           onClick={() => setPopups([])}
           className="pointer-events-auto self-end rounded-full bg-[#23471d] px-3 py-1 text-[11px] font-bold text-white shadow-lg hover:bg-[#1a3515]"
         >

@@ -7,8 +7,11 @@ const REGISTRATIONS_PATH = '/registrations';
 // is exactly the set a customer can be registered for.
 const PUBLIC_NAVBAR_PATH = '/public/websites/city-calls/navbar/menus';
 
-// PENDING → ACTIVE → COMPLETED; each move carries a note (see useTransitionRegistration).
-export type RegistrationStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED';
+// Call lifecycle — each move carries a note (see useTransitionRegistration and
+// STATUS_TRANSITIONS in lib/registrations/constants).
+export type RegistrationStatus = 'NEW' | 'ACTIVE' | 'PENDING' | 'REOPENED' | 'CLOSED' | 'CANCELLED';
+// Statuses a call can be moved to (nothing moves back to New).
+export type MoveStatus = Exclude<RegistrationStatus, 'NEW'>;
 export type IssueFrequency = 'Always' | 'Sometimes' | 'Occasionally' | 'Once';
 
 export interface RegistrationInput {
@@ -68,8 +71,8 @@ export interface Registration extends RegistrationInput {
   source: 'ADMIN' | 'WEBSITE';
   photos: string[];
   status: RegistrationStatus;
-  activationNote?: StageNote;
-  completionNote?: StageNote;
+  // Note of the latest status move.
+  lastNote?: StageNote;
   statusHistory: StatusHistoryEntry[];
   // Service-specific answers from the website form (e.g. "Outdoor unit accessible?").
   extraDetails?: { label: string; value: string }[];
@@ -223,7 +226,7 @@ export function useUpdateRegistration() {
 // PENDING → ACTIVE (activation note) or ACTIVE → COMPLETED (completion note).
 export function useTransitionRegistration() {
   const queryClient = useQueryClient();
-  return useMutation<Registration, AxiosError<ApiErrorEnvelope>, { id: string; status: 'ACTIVE' | 'COMPLETED'; note: string }>({
+  return useMutation<Registration, AxiosError<ApiErrorEnvelope>, { id: string; status: MoveStatus; note: string }>({
     mutationFn: async ({ id, ...body }) => {
       const res = await apiClient.post<ApiSuccessEnvelope<Registration>>(`${REGISTRATIONS_PATH}/${id}/transition`, body, { skipGlobalToast: true });
       return res.data.data;
@@ -252,8 +255,9 @@ export interface UnreadRegistrations {
   // Category name → unread count (sidebar badges).
   byCategory: Record<string, number>;
   // Same, counting only Pending ones ("Pending Registration" links).
-  pendingTotal: number;
-  pendingByCategory: Record<string, number>;
+  // Unread calls still in New — the badge on each "New Call" link.
+  newTotal: number;
+  newByCategory: Record<string, number>;
   // Newest unread first (popup).
   latest: UnreadRegistration[];
 }

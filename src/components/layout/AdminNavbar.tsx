@@ -8,6 +8,7 @@ import { LogOut, UserCircle, Sparkles, ChevronDown, HelpCircle, BellRing, Bell, 
 import { clearSession, useMe } from '@/lib/hooks/useAuth';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { useNotifications, useUnreadCount, useMarkNotificationRead } from '@/lib/hooks/useNotifications';
+import { ServerExpiryChip } from '@/components/server-assets/ServerExpiryChip';
 
 function timeAgo(iso: string): string {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -74,7 +75,8 @@ export function AdminNavbar() {
           : 'bg-white/90 backdrop-blur-xl border-slate-200/80 text-slate-800 shadow-xs'
       }`}
     >
-      <SidebarTrigger className={isBeautyMode ? 'text-pink-950 hover:bg-pink-50' : 'text-slate-600 hover:bg-slate-900/5'} />
+      {/* Mobile only — on desktop the sidebar has its own collapse button by the logo */}
+      <SidebarTrigger className={`md:hidden ${isBeautyMode ? 'text-pink-950 hover:bg-pink-50' : 'text-slate-600 hover:bg-slate-900/5'}`} />
 
       {/* Greeting card — time-of-day + the logged-in user's real name/role from useMe() */}
       <div
@@ -130,6 +132,9 @@ export function AdminNavbar() {
             </div>
           )}
         </div>
+
+        {/* Domain / hosting renewals — server icon with a count badge */}
+        <ServerExpiryChip buttonClass={iconBtnClass} iconClass={iconColorClass} />
 
         {/* Reminder List */}
         <div className="relative">

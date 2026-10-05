@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, CalendarClock, Check, CheckCheck, ClipboardCheck, Edit, ImageIcon, Printer, TicketPercent, Wrench,
+  ArrowLeft, CalendarClock, ClipboardCheck, Edit, ImageIcon, Printer, TicketPercent, Wrench,
 } from 'lucide-react';
 
 import { useEffect } from 'react';
 import { useMarkRegistrationViewed, useRegistrationServices, Registration } from '@/lib/hooks/useRegistrations';
-import { ALL_CATEGORIES, registrationListPath, stageSlugOf, STATUS_META } from '@/lib/registrations/constants';
+import { ALL_CATEGORIES, registrationListPath, stageSlugOf, STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
 import { formatDate, formatTime, resolveMediaUrl } from '@/lib/registrations/format';
 import { SourceBadge, StatusBadge } from '../shared/StatusBadge';
 import { useStageTransition } from '../shared/useStageTransition';
@@ -26,7 +26,7 @@ function Chip({ children, tone = 'amber' }: { children: React.ReactNode; tone?: 
 
 export function RegistrationOverview({ registration: r }: { registration: Registration }) {
   const router = useRouter();
-  const { moveToNextStage, isPending } = useStageTransition();
+  const { changeStatus, isPending } = useStageTransition();
   const { mutate: markViewed } = useMarkRegistrationViewed();
 
   // Opening a new (unread) registration clears it from the sidebar badges.
@@ -69,21 +69,20 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
         <SectionHeading
           action={
             <div className="flex items-center gap-2.5 print:hidden">
-              {stage.next && (
+              {/* One button per status this call can move to (each asks for a note). */}
+              {STATUS_TRANSITIONS[r.status].map((target) => (
                 <button
+                  key={target}
                   type="button"
                   disabled={isPending}
-                  onClick={() => void moveToNextStage(r)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs transition-colors disabled:opacity-60 ${
-                    r.status === 'PENDING' ? 'bg-[#3e8914] hover:bg-[#347311]' : 'bg-indigo-600 hover:bg-indigo-700'
-                  }`}
+                  onClick={() => void changeStatus(r, target)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs transition-colors disabled:opacity-60 ${STATUS_META[target].button}`}
                 >
-                  {r.status === 'PENDING' ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <CheckCheck className="h-3.5 w-3.5" />}
-                  {stage.next.action}
+                  {STATUS_META[target].action}
                 </button>
-              )}
+              ))}
               <span className="border border-[#3e8914]/30 bg-[#3e8914]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#23471d]">
-                {r.serviceCategory ?? 'Service'} Registration
+                {r.serviceCategory ?? 'Service'} Call
               </span>
             </div>
           }
