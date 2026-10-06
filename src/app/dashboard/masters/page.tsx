@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { AppFormField } from '@/components/ui/AppFormField';
 import { FormSheet } from '@/components/ui/FormSheet';
 import { Separator } from '@/components/ui/separator';
-import { Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { useUploadFile, resolveFileUrl, useFileList } from '@/lib/hooks/useFiles';
 
-import { useMasters, useCreateMaster, useUpdateMaster, Master } from '@/lib/hooks/useMasters';
+import { useMasters, useCreateMaster, useUpdateMaster, useDeleteMaster, Master } from '@/lib/hooks/useMasters';
 
 const MASTER_TYPES = ['SERVICE_CATEGORY', 'BRAND', 'PRODUCT_TYPE', 'COMPLAINT_TYPE', 'SYMPTOM', 'DEFECT', 'SOLUTION', 'PART', 'UNIT', 'TAX_RATE', 'PRIORITY', 'LEAD_SOURCE', 'CALL_TYPE', 'APPOINTMENT_SLOT', 'PAYMENT_METHOD', 'CUSTOMER_TYPE'];
 
@@ -122,7 +123,12 @@ function AddMasterForm({ defaultType, siblings, onClose }: { defaultType: string
   );
 }
 
+// System keys are stored UPPER_SNAKE_CASE (e.g. HOME_CLEANING).
+const normalizeKey = (v: string) =>
+  v.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
 const editMasterSchema = z.object({
+  key: z.string().min(1, 'System key is required'),
   label: z.string().min(1, 'Label is required'),
   parentId: z.string().optional(),
   sortOrder: z.number().optional(),
@@ -135,6 +141,7 @@ function EditMasterForm({ master, siblings, onClose }: { master: Master; sibling
   const { register, handleSubmit, formState: { errors } } = useForm<EditMasterValues>({
     resolver: zodResolver(editMasterSchema),
     defaultValues: {
+      key: master.key,
       label: master.label,
       parentId: master.parentId ?? '',
       sortOrder: master.sortOrder ?? 0,
@@ -143,12 +150,15 @@ function EditMasterForm({ master, siblings, onClose }: { master: Master; sibling
   });
 
   const onSubmit = (values: EditMasterValues) => {
-    const { vertical, ...rest } = values;
+    const { vertical, key, ...rest } = values;
+    const newKey = normalizeKey(key);
     updateMaster.mutate(
       {
         masterType: master.masterType,
         id: master._id,
         ...rest,
+        // Only send the key when it actually changed.
+        ...(newKey !== master.key ? { key: newKey } : {}),
         parentId: values.parentId || undefined,
         ...(master.masterType === 'SERVICE_CATEGORY' ? { meta: { ...master.meta, vertical: vertical || undefined } } : {}),
       },
@@ -159,7 +169,12 @@ function EditMasterForm({ master, siblings, onClose }: { master: Master; sibling
   return (
     <div className="space-y-6 pb-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <AppFormField label="System Key" value={master.key} disabled readOnly />
+        <AppFormField
+          label="System Key"
+          placeholder="e.g. HOME_CLEANING"
+          error={errors.key?.message}
+          {...register('key', { setValueAs: (v: string) => normalizeKey(v ?? '') })}
+        />
         <AppFormField label="Display Label" error={errors.label?.message} {...register('label')} />
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Parent Entry (Optional)</label>
@@ -168,7 +183,14 @@ function EditMasterForm({ master, siblings, onClose }: { master: Master; sibling
             {siblings.filter((s) => s._id !== master._id).map((s) => <option key={s._id} value={s._id}>{s.label}</option>)}
           </select>
         </div>
-        <AppFormField label="Sort Order" type="number" {...register('sortOrder', { valueAsNumber: true })} />
+        <AppFormField
+          label="Sort Order"
+          type="number"
+          error={errors.sortOrder?.message}
+          // An emptied field means "no order" rather than NaN, which used to
+          // fail validation silently and block the save.
+          {...register('sortOrder', { setValueAs: (v: string) => (v === '' || v == null ? undefined : Number(v)) })}
+        />
         {master.masterType === 'SERVICE_CATEGORY' && (
           <AppFormField
             label="Vertical (Optional)"
@@ -206,10 +228,78 @@ function MasterImageCell({ masterId }: { masterId: string }) {
   );
 }
 
+// Confirmation popup for permanently deleting a master entry. The API refuses
+// (409) while the entry is still used somewhere; that message is shown as-is.
+function DeleteMasterDialog({ master, onClose }: { master: Master; onClose: () => void }) {
+  const deleteMaster = useDeleteMaster();
+
+  const confirm = () => {
+    deleteMaster.mutate(
+      { masterType: master.masterType, id: master._id },
+      {
+        onSuccess: () => {
+          toast.success(`"${master.label}" deleted`);
+          onClose();
+        },
+        onError: (err) => {
+          toast.error(err.response?.data?.message ?? 'Failed to delete. Please try again.');
+        },
+      }
+    );
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={() => !deleteMaster.isPending && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-[380px] rounded-[10px] bg-white p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-bold text-[#18233b]">Delete master entry?</h3>
+            <p className="mt-1 text-[12px] leading-[1.5] text-[#6c7587]">
+              <strong className="text-[#4B1426]">{master.label}</strong> will be permanently deleted. This
+              cannot be undone. If it is still in use, it won&apos;t be deleted — set it to Inactive instead.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={deleteMaster.isPending}
+            className="h-[30px] rounded-[6px] border border-[#d8dce2] bg-white px-[14px] text-[12px] font-semibold text-[#334155] transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={confirm}
+            disabled={deleteMaster.isPending}
+            className="flex h-[30px] items-center gap-[6px] rounded-[6px] bg-red-600 px-[14px] text-[12px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+          >
+            {deleteMaster.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MastersPage() {
   const [selectedType, setSelectedType] = useState('SERVICE_CATEGORY');
   const { data: masters, isLoading, isError } = useMasters([selectedType]);
   const updateMaster = useUpdateMaster();
+  const [deleting, setDeleting] = useState<Master | null>(null);
 
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -354,6 +444,14 @@ export default function MastersPage() {
                             >
                               {(close) => <EditMasterForm master={item} siblings={masters || []} onClose={close} />}
                             </FormSheet>
+                            <button
+                              type="button"
+                              title="Delete Master Entry"
+                              onClick={() => setDeleting(item)}
+                              className="flex h-[25px] w-[25px] items-center justify-center rounded-[6px] bg-red-500/10 text-red-600 backdrop-blur-md border border-red-400/30 shadow-[0_2px_6px_rgba(220,38,38,0.12)] transition-all hover:bg-red-500/20 hover:border-red-400/50 hover:shadow-[0_3px_10px_rgba(220,38,38,0.25)] hover:scale-105 active:scale-95"
+                            >
+                              <Trash2 className="h-[12px] w-[12px] text-red-600" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -410,6 +508,7 @@ export default function MastersPage() {
           </div>
         )}
       </div>
+      {deleting && <DeleteMasterDialog master={deleting} onClose={() => setDeleting(null)} />}
     </div>
   );
 }
