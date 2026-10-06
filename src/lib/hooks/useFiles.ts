@@ -16,6 +16,7 @@ export const FILE_CATEGORIES = [
   'NAVBAR_SERVICE_IMAGE',
   'WEBSITE_PAGE_HERO_IMAGE', 'WEBSITE_PAGE_BANNER_IMAGE',
   'WEBSITE_SEO_OG_IMAGE',
+  'APP_HOME_BANNER_IMAGE',
 ] as const;
 export type FileCategory = (typeof FILE_CATEGORIES)[number];
 

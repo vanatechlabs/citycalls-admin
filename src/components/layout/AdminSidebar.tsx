@@ -75,7 +75,8 @@ import {
   LayoutGrid,
   Layers,
   ImagePlus,
-  Images
+  Images,
+  Smartphone
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { ALL_CATEGORIES, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
@@ -127,6 +128,12 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Our Services', url: '/dashboard/website/our-services', icon: LayoutGrid, module: 'marketing' },
       { title: 'Counters', url: '/dashboard/website/counters', icon: Hash, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Customer App',
+    items: [
+      { title: 'Home Banner', url: '/dashboard/customer-app/home-banner', icon: Smartphone, module: 'marketing' },
     ],
   },
   {
