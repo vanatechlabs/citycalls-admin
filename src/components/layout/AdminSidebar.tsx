@@ -18,7 +18,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { PermissionGate } from '@/components/ui/PermissionGate';
-import { clearSession, useMe } from '@/lib/hooks/useAuth';
+import { clearSession, useMe, usePermission } from '@/lib/hooks/useAuth';
 import {
   LayoutDashboard,
   Settings,
@@ -75,9 +75,13 @@ import {
   LayoutGrid,
   Layers,
   ImagePlus,
-  Images
+  Images,
+  Zap,
+  Mail,
+  MessageSquareQuote
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
+import { useEnquiryPendingCounts, type EnquiryType } from '@/lib/hooks/useEnquiries';
 import { ALL_CATEGORIES, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -158,14 +162,23 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Add Page', url: '/dashboard/pages/add', icon: FilePlus2, module: 'marketing' },
       { title: 'Page List', url: '/dashboard/pages/list', icon: FileStack, module: 'marketing' },
       { title: 'Launch Spotlight', url: '/dashboard/pages/launch-spotlight', icon: GalleryHorizontal, module: 'marketing' },
+      { title: 'Testimonials', url: '/dashboard/pages/testimonials', icon: MessageSquareQuote, module: 'marketing' },
     ],
   },
   {
     group: 'Registration Section',
     items: [
-      { title: 'New Registration', url: '/dashboard/registrations/new', icon: ClipboardPlus, module: 'customers', action: 'create' },
+      { title: 'New Call', url: '/dashboard/registrations/new', icon: ClipboardPlus, module: 'customers', action: 'create' },
       // + "All Categories" and one dropdown per Navbar List menu, added at
       // render time by useRegistrationCategoryItems().
+    ],
+  },
+  {
+    group: 'Enquiry Section',
+    items: [
+      // Red badges (Pending count) added at render time from useEnquiryPendingCounts().
+      { title: 'Quick Booking', url: '/dashboard/enquiries/quick-booking', icon: Zap, module: 'leads' },
+      { title: 'Contact Enquiry', url: '/dashboard/enquiries/contact', icon: Mail, module: 'leads' },
     ],
   },
   {
@@ -339,6 +352,9 @@ export function useRegistrationCategoryItems(): NavItem[] {
   }));
 }
 
+// Enquiry Section menu → which pending count its badge shows.
+const ENQUIRY_BADGE: Record<string, EnquiryType> = { 'Quick Booking': 'QUICK_BOOKING', 'Contact Enquiry': 'CONTACT' };
+
 // Red pill with white count, e.g. unread registrations in a category.
 function CountBadge({ count, className = '' }: { count?: number; className?: string }) {
   if (!count) return null;
@@ -371,6 +387,7 @@ function AdminSidebarContent() {
   const { state: sidebarState, toggleSidebar, setOpen: setSidebarOpen } = useSidebar();
   const collapsed = sidebarState === 'collapsed';
   const registrationCategoryItems = useRegistrationCategoryItems();
+  const { data: pendingEnquiries } = useEnquiryPendingCounts({ enabled: usePermission('leads', 'view') });
   // Menu Access (set by Super Admin per user): only the chosen menus show.
   // Super Admin and users without a saved list see everything.
   const { data: me } = useMe();
@@ -378,6 +395,11 @@ function AdminSidebarContent() {
   const groups = navItems
     .map((group) =>
       group.group === 'Registration Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
+    )
+    .map((group) =>
+      group.group === 'Enquiry Section'
+        ? { ...group, items: group.items.map((item) => ({ ...item, badge: pendingEnquiries?.[ENQUIRY_BADGE[item.title]] })) }
+        : group
     )
     .map((group) => ({
       ...group,
@@ -556,6 +578,7 @@ function AdminSidebarContent() {
                             >
                               <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
                               <span>{item.title}</span>
+                              <CountBadge count={item.badge} className="ml-auto" />
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                         </PermissionGate>

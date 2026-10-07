@@ -6,7 +6,7 @@ import { PageShell } from '@/components/registrations/shared/PageShell';
 export default function NewRegistrationPage() {
   return (
     <PageShell
-      title="New Registration"
+      title="New Call"
       description="Register a customer for a service — personal details, issue details, visit time and coupon."
     >
       <RegistrationForm />

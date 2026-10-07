@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { RegistrationNumberCard } from '@/components/settings/RegistrationNumberCard';
 
 interface EmailEntry {
   id: string;
@@ -346,6 +347,9 @@ export default function SettingsPage() {
 
           {/* RIGHT COLUMN — ADDRESSES & QUICK LINKS */}
           <div className="space-y-5 lg:col-span-2">
+            {/* Registration Number Series — saved on its own (has a backend) */}
+            <RegistrationNumberCard />
+
             {/* Office Locations */}
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b bg-[#233D4D] px-4 py-2.5">
