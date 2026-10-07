@@ -49,6 +49,7 @@ export function useCreateMaster() {
 export interface UpdateMasterInput {
   masterType: string;
   id: string;
+  key?: string;
   label?: string;
   parentId?: string;
   sortOrder?: number;
