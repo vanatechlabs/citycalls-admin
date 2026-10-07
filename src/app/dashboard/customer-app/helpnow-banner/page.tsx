@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit, Image as ImageIcon, Plus, Search, Trash2, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -69,7 +69,12 @@ export default function CustomerAppHelpNowBannerPage() {
   const deleteBanner = useDeleteHelpNowBanner();
   const imageUpload = useUploadFile('APP_HELPNOW_BANNER', editingId ?? 'new', { skipGlobalToast: true });
 
-  const isSaving = createBanner.isPending || updateBanner.isPending || imageUpload.isPending;
+  // True for the whole save (create → image upload → attach), not just while
+  // one request is in flight — the mutations' isPending flags each drop to
+  // false between steps, which would briefly re-enable the button. The ref
+  // blocks a second submit fired before React re-renders (a fast double-click).
+  const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (hasLoadError) showToast('error', 'Failed to load HelpNow banners');
@@ -144,10 +149,14 @@ export default function CustomerAppHelpNowBannerPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (savingRef.current) return;
     if (!editingId && !imageFile) {
       showToast('warning', 'Background image is required');
       return;
     }
+    savingRef.current = true;
+    setIsSaving(true);
+    const isEdit = !!editingId;
     try {
       let bannerId = editingId;
 
@@ -156,6 +165,9 @@ export default function CustomerAppHelpNowBannerPage() {
       } else {
         const created = await createBanner.mutateAsync(form);
         bannerId = created._id;
+        // If the image step below fails, retrying must update this banner,
+        // not create a second copy of it.
+        setEditingId(created._id);
       }
 
       if (imageFile && bannerId) {
@@ -163,10 +175,13 @@ export default function CustomerAppHelpNowBannerPage() {
         await updateBanner.mutateAsync({ id: bannerId, image: uploaded.url });
       }
 
-      showToast('success', editingId ? 'Banner updated' : 'Banner created');
+      showToast('success', isEdit ? 'Banner updated' : 'Banner created');
       setModalOpen(false);
     } catch {
       showToast('error', 'Failed to save banner');
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
   }
 
@@ -353,13 +368,14 @@ export default function CustomerAppHelpNowBannerPage() {
 
       {/* ADD / EDIT POPUP */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeModal}>
+        // Clicking the backdrop does nothing on purpose — only the X and
+        // Cancel buttons close the form, so a stray click can't lose input.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="helpnow-banner-modal-title"
             className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b-2 border-gray-100 bg-white px-6 py-4">
               <div className="flex items-center gap-3">
@@ -370,7 +386,7 @@ export default function CustomerAppHelpNowBannerPage() {
                   {editingId ? 'Edit Banner' : 'Add Banner'}
                 </h2>
               </div>
-              <button type="button" onClick={closeModal} aria-label="Close" className="p-1 text-gray-500 hover:text-gray-900">
+              <button type="button" onClick={closeModal} disabled={isSaving} aria-label="Close" className="p-1 text-gray-500 hover:text-gray-900 disabled:opacity-40">
                 <X className="w-5 h-5" />
               </button>
             </div>
