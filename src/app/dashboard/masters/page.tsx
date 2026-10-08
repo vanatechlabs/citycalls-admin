@@ -39,8 +39,10 @@ const SELECT_ARROW = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 const INPUT = 'w-full border-2 border-gray-300 px-3 py-2 text-sm font-semibold outline-none focus:border-[#3e8914] disabled:bg-gray-100 disabled:text-gray-500';
 const LABEL = 'mb-1 block text-xs font-bold uppercase text-gray-500';
 
-// "AC Gas Leak" → "AC_GAS_LEAK"
-const toKey = (label: string) => label.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60);
+// "AC Gas Leak" → "AC_GAS_LEAK" (system keys are UPPER_SNAKE_CASE).
+const toKey = (label: string) => label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+// While typing: same, but keep a trailing "_" so the next word can be typed.
+const typingKey = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+/, '').slice(0, 60);
 
 interface FormState {
   key: string;
@@ -142,7 +144,8 @@ export default function MastersPage() {
   }
 
   async function submit() {
-    if (!form.label.trim() || !form.key.trim()) {
+    const key = toKey(form.key);
+    if (!form.label.trim() || !key) {
       void Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Display Label and System Key are required', confirmButtonColor: '#3e8914' });
       return;
     }
@@ -152,6 +155,8 @@ export default function MastersPage() {
         ? await updateMaster.mutateAsync({
             masterType: editing.masterType,
             id: editing._id,
+            // Only send the key when it actually changed.
+            ...(key !== editing.key ? { key } : {}),
             label: form.label.trim(),
             parentId: form.parentId || undefined,
             sortOrder: form.sortOrder,
@@ -159,7 +164,7 @@ export default function MastersPage() {
           })
         : await createMaster.mutateAsync({
             masterType: selectedType,
-            key: form.key.trim(),
+            key,
             label: form.label.trim(),
             parentId: form.parentId || undefined,
             sortOrder: form.sortOrder,
@@ -179,7 +184,7 @@ export default function MastersPage() {
   async function remove(item: Master) {
     const result = await Swal.fire({
       title: 'Are you sure?',
-      html: `Delete <strong>${item.label.replace(/</g, '&lt;')}</strong> from ${label}?<br><span class="text-red-600">Screens that use it will no longer list it.</span>`,
+      html: `<strong>${item.label.replace(/</g, '&lt;')}</strong> will be permanently deleted from ${label}. This cannot be undone.<br><span class="text-red-600">If it is still in use, it won't be deleted — set it to Inactive instead.</span>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -257,13 +262,12 @@ export default function MastersPage() {
                       <label className={LABEL}>System Key</label>
                       <input
                         value={form.key}
-                        disabled={!!editing}
                         maxLength={60}
-                        onChange={(e) => { setKeyTouched(true); setForm((f) => ({ ...f, key: toKey(e.target.value) })); }}
+                        onChange={(e) => { setKeyTouched(true); setForm((f) => ({ ...f, key: typingKey(e.target.value) })); }}
                         placeholder="e.g. AC_GAS_LEAK"
                         className={`${INPUT} font-mono`}
                       />
-                      <p className="mt-1 text-[10px] text-gray-400">{editing ? 'The key can’t change once created.' : 'Filled in from the label — capital letters and underscores.'}</p>
+                      <p className="mt-1 text-[10px] text-gray-400">{editing ? 'Capital letters and underscores. Change it only if needed — other records refer to it.' : 'Filled in from the label — capital letters and underscores.'}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>

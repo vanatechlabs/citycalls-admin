@@ -76,6 +76,7 @@ import {
   Layers,
   ImagePlus,
   Images,
+  Smartphone,
   Zap,
   Mail,
   MessageSquareQuote,
@@ -134,6 +135,14 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Counters', url: '/dashboard/website/counters', icon: Hash, module: 'marketing' },
       { title: 'Why Choose Us', url: '/dashboard/website/key-features', icon: Sparkles, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Customer App',
+    items: [
+      { title: 'Home Banner', url: '/dashboard/customer-app/home-banner', icon: Smartphone, module: 'marketing' },
+      { title: 'Salon Banner', url: '/dashboard/customer-app/salon-banner', icon: Sparkles, module: 'marketing' },
+      { title: 'HelpNow Banner', url: '/dashboard/customer-app/helpnow-banner', icon: HelpCircle, module: 'marketing' },
     ],
   },
   {
