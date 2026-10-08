@@ -78,7 +78,9 @@ import {
   Images,
   Zap,
   Mail,
-  MessageSquareQuote
+  MessageSquareQuote,
+  FilePenLine,
+  Newspaper
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { useEnquiryPendingCounts, type EnquiryType } from '@/lib/hooks/useEnquiries';
@@ -130,7 +132,15 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Popular Packages', url: '/dashboard/website/popular-packages', icon: Package, module: 'marketing' },
       { title: 'Our Services', url: '/dashboard/website/our-services', icon: LayoutGrid, module: 'marketing' },
       { title: 'Counters', url: '/dashboard/website/counters', icon: Hash, module: 'marketing' },
+      { title: 'Why Choose Us', url: '/dashboard/website/key-features', icon: Sparkles, module: 'marketing' },
       { title: 'FAQ', url: '/dashboard/website/faq', icon: HelpCircle, module: 'marketing' },
+    ],
+  },
+  {
+    group: 'Blog Section',
+    items: [
+      { title: 'Add Blog', url: '/dashboard/blogs/add', icon: FilePenLine, module: 'marketing' },
+      { title: 'Blog List', url: '/dashboard/blogs/list', icon: Newspaper, module: 'marketing' },
     ],
   },
   {

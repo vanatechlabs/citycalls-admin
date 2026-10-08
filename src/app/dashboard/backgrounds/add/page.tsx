@@ -21,6 +21,9 @@ import { PageShell } from '@/components/registrations/shared/PageShell';
 import { CARD, CARD_TITLE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, SECONDARY_BUTTON } from '@/components/registrations/shared/styles';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// The blog list page (Other Pages group) — its hero shows only the heading,
+// description and image, not the subheading or features.
+const BLOGS_PATH = '/blogs';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 // What every service page hero shows today, as a starting point.
@@ -111,13 +114,17 @@ function BackgroundForm({ existing }: { existing?: PageBackground }) {
       if (result.isConfirmed) router.push(`/dashboard/backgrounds/add?editId=${page.backgroundId}`);
       return;
     }
+    // The Blogs page has its own wording; service pages get "<Service> in Ghaziabad".
+    const prefill = path === BLOGS_PATH
+      ? { heading: 'Guides, Tips & Stories', highlight: 'Stories', imageAlt: 'CityCalls blog — home care guides and tips', description: "Expert advice, maintenance tips and honest how-tos from CityCalls' verified home service professionals." }
+      : { heading: page ? `${page.name} in Ghaziabad` : '', highlight: page ? 'Ghaziabad' : '', imageAlt: page ? `${page.name} in Ghaziabad` : '', description: '' };
     setForm((prev) => ({
       ...prev,
       pagePath: path,
-      // Pre-fill the usual "<Service> in Ghaziabad" heading for a fresh entry.
-      heading: prev.heading || (page ? `${page.name} in Ghaziabad` : ''),
-      highlight: prev.highlight || (page ? 'Ghaziabad' : ''),
-      imageAlt: prev.imageAlt || (page ? `${page.name} in Ghaziabad` : ''),
+      heading: prev.heading || prefill.heading,
+      highlight: prev.highlight || prefill.highlight,
+      imageAlt: prev.imageAlt || prefill.imageAlt,
+      description: prev.description || prefill.description,
     }));
   }
 
@@ -190,7 +197,7 @@ function BackgroundForm({ existing }: { existing?: PageBackground }) {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="grid grid-cols-1 gap-8 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
-        <FormCard icon={Globe} title="Page" hint="Service pages come from Navbar List, grouped by menu. Pages marked ✓ already have a background.">
+        <FormCard icon={Globe} title="Page" hint="Service pages come from Navbar List, grouped by menu; the Blogs page is under Other Pages. Pages marked ✓ already have a background.">
           <Field label="Select Page" required>
             <select
               required
@@ -212,6 +219,11 @@ function BackgroundForm({ existing }: { existing?: PageBackground }) {
               ))}
             </select>
           </Field>
+          {form.pagePath === BLOGS_PATH && (
+            <p className="mt-2 border-l-4 border-[#3e8914] bg-[#3e8914]/5 px-3 py-2 text-[11px] font-medium text-gray-600">
+              The Blogs page shows the heading, highlight, description and image. Subheading and features are only used on service pages.
+            </p>
+          )}
         </FormCard>
 
         <FormCard icon={Type} title="Hero Text" hint="The text shown over the background image at the top of the page.">
