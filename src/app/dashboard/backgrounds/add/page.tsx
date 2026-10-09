@@ -21,8 +21,8 @@ import { PageShell } from '@/components/registrations/shared/PageShell';
 import { CARD, CARD_TITLE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, SECONDARY_BUTTON } from '@/components/registrations/shared/styles';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-// The blog list page (Other Pages group) — its hero shows only the heading,
-// description and image, not the subheading or features.
+// The blog list page (Other Pages group) — its hero shows the subheading,
+// heading, description and image, but not the features.
 const BLOGS_PATH = '/blogs';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -116,11 +116,12 @@ function BackgroundForm({ existing }: { existing?: PageBackground }) {
     }
     // The Blogs page has its own wording; service pages get "<Service> in Ghaziabad".
     const prefill = path === BLOGS_PATH
-      ? { heading: 'Guides, Tips & Stories', highlight: 'Stories', imageAlt: 'CityCalls blog — home care guides and tips', description: "Expert advice, maintenance tips and honest how-tos from CityCalls' verified home service professionals." }
-      : { heading: page ? `${page.name} in Ghaziabad` : '', highlight: page ? 'Ghaziabad' : '', imageAlt: page ? `${page.name} in Ghaziabad` : '', description: '' };
+      ? { subheading: 'The CityCalls Journal', heading: 'Guides, Tips & Stories', highlight: 'Stories', imageAlt: 'CityCalls blog — home care guides and tips', description: "Expert advice, maintenance tips and honest how-tos from CityCalls' verified home service professionals." }
+      : { subheading: '', heading: page ? `${page.name} in Ghaziabad` : '', highlight: page ? 'Ghaziabad' : '', imageAlt: page ? `${page.name} in Ghaziabad` : '', description: '' };
     setForm((prev) => ({
       ...prev,
       pagePath: path,
+      subheading: prefill.subheading && (!prev.subheading || prev.subheading === emptyForm.subheading) ? prefill.subheading : prev.subheading,
       heading: prev.heading || prefill.heading,
       highlight: prev.highlight || prefill.highlight,
       imageAlt: prev.imageAlt || prefill.imageAlt,
@@ -221,7 +222,7 @@ function BackgroundForm({ existing }: { existing?: PageBackground }) {
           </Field>
           {form.pagePath === BLOGS_PATH && (
             <p className="mt-2 border-l-4 border-[#3e8914] bg-[#3e8914]/5 px-3 py-2 text-[11px] font-medium text-gray-600">
-              The Blogs page shows the heading, highlight, description and image. Subheading and features are only used on service pages.
+              The Blogs page shows the subheading, heading, highlight, description and image. The features are only used on service pages.
             </p>
           )}
         </FormCard>
