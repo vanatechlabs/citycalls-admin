@@ -35,7 +35,7 @@ function formFrom(data: AboutStory): AboutStoryInput {
 
 function StoryForm({ data }: { data: AboutStory }) {
   const save = useSaveAboutStory();
-  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', 'about-story', { skipGlobalToast: true });
+  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', data.pageId ?? '', { skipGlobalToast: true });
   const [form, setForm] = useState<AboutStoryInput>(formFrom(data));
   const [files, setFiles] = useState<(File | null)[]>(Array(MAX_STORY_IMAGES).fill(null));
   const [previews, setPreviews] = useState<(string | null)[]>(formFrom(data).images.map((img) => (img.image ? previewUrl(img.image) : null)));

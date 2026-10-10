@@ -23,6 +23,8 @@ export const MAX_STORY_IMAGES = 4;
 interface Saved {
   updatedBy?: { name: string };
   updatedAt?: string;
+  // About page record id — uploaded photos are linked to it.
+  pageId?: string;
 }
 
 export interface AboutHeroInput {

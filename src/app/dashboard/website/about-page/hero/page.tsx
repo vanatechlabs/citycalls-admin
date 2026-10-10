@@ -31,7 +31,7 @@ function formFrom(data: AboutHero): AboutHeroInput {
 
 function HeroForm({ data }: { data: AboutHero }) {
   const save = useSaveAboutHero();
-  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', 'about-hero', { skipGlobalToast: true });
+  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', data.pageId ?? '', { skipGlobalToast: true });
   const [form, setForm] = useState<AboutHeroInput>(formFrom(data));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(data.image ? previewUrl(data.image) : null);

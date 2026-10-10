@@ -15,7 +15,7 @@ import { useUploadFile } from '@/lib/hooks/useFiles';
 
 function ParallaxForm({ data }: { data: AboutParallax }) {
   const save = useSaveAboutParallax();
-  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', 'about-parallax', { skipGlobalToast: true });
+  const imageUpload = useUploadFile('CITYCALLS_ABOUT_PAGE', data.pageId ?? '', { skipGlobalToast: true });
   const [form, setForm] = useState<AboutParallaxInput>({ image: data.image ?? '', imageAlt: data.imageAlt ?? '', status: data.status ?? 'ACTIVE' });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(data.image ? previewUrl(data.image) : null);
