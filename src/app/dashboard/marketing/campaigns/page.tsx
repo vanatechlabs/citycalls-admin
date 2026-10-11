@@ -6,11 +6,9 @@ import { DataTable } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { AppFormField } from '@/components/ui/AppFormField';
 import { FormSheet } from '@/components/ui/FormSheet';
-import { Separator } from '@/components/ui/separator';
 import { Megaphone, Users, Send, Pencil, Trash2, Search, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -52,7 +50,9 @@ function audienceSummary(campaign: Campaign, customerTypes?: Master[]) {
   return parts.length ? parts.join(' · ') : 'All customers';
 }
 
-function CreateCampaignForm() {
+// Kept out of the UI for now; campaign creation uses the same editor as Edit below.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyCampaignWizard() {
   const createCampaign = useCreateCampaign();
   const updateCampaign = useUpdateCampaign();
   const mediaUpload = useUploadFile('CAMPAIGN', 'new');
@@ -314,57 +314,75 @@ function CreateCampaignForm() {
   );
 }
 
-function UpdateCampaignForm({ campaign, onClose }: { campaign: Campaign; onClose: () => void }) {
+function CampaignEditorForm({ campaign, onClose }: { campaign?: Campaign; onClose: () => void }) {
+  const createCampaign = useCreateCampaign();
   const updateCampaign = useUpdateCampaign();
-  const mediaUpload = useUploadFile('CAMPAIGN', campaign._id);
+  const mediaUpload = useUploadFile('CAMPAIGN', campaign?._id ?? 'new');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const { data: templates } = useNotificationTemplates();
   const { data: customerTypes } = useMasters(['CUSTOMER_TYPE']);
   const { register, handleSubmit, control } = useForm<CampaignFormValues>({
     defaultValues: {
-      name: campaign.name,
-      channel: campaign.channel,
-      templateId: campaign.templateId,
-      providerCampaignName: campaign.providerCampaignName || '',
-      templateParams: campaign.templateParams?.join(', ') || '',
-      recipientTypes: campaign.audienceFilter.recipientTypes || ['CUSTOMER'],
-      roles: campaign.audienceFilter.roles || [],
-      branchIds: campaign.audienceFilter.branchIds || [],
-      vendorIds: campaign.audienceFilter.vendorIds || [],
-      excludeMobiles: campaign.audienceFilter.excludeMobiles?.join(', ') || '',
-      manualMobiles: campaign.audienceFilter.manualMobiles?.join(', ') || '',
-      tags: campaign.audienceFilter.tags?.join(', ') || '',
-      segments: campaign.audienceFilter.segments?.join(', ') || '',
-      customerType: campaign.audienceFilter.customerType || '',
-      scheduledAt: campaign.scheduledAt || '',
+      name: campaign?.name ?? '',
+      channel: campaign?.channel ?? 'WHATSAPP',
+      templateId: campaign?.templateId ?? '',
+      providerCampaignName: campaign?.providerCampaignName ?? '',
+      templateParams: campaign?.templateParams?.join(', ') ?? '',
+      recipientTypes: campaign?.audienceFilter.recipientTypes ?? ['CUSTOMER'],
+      roles: campaign?.audienceFilter.roles ?? [],
+      branchIds: campaign?.audienceFilter.branchIds ?? [],
+      vendorIds: campaign?.audienceFilter.vendorIds ?? [],
+      excludeMobiles: campaign?.audienceFilter.excludeMobiles?.join(', ') ?? '',
+      manualMobiles: campaign?.audienceFilter.manualMobiles?.join(', ') ?? '',
+      tags: campaign?.audienceFilter.tags?.join(', ') ?? '',
+      segments: campaign?.audienceFilter.segments?.join(', ') ?? '',
+      customerType: campaign?.audienceFilter.customerType ?? '',
+      scheduledAt: campaign?.scheduledAt ?? '',
     },
   });
   const channel = useWatch({ control, name: 'channel' });
   const eligibleTemplates = (templates || []).filter((t) => t.channel === channel);
 
-  const onSubmit = (values: CampaignFormValues) => {
-    updateCampaign.mutate(
-      {
-        id: campaign._id,
-        name: values.name,
-        channel: values.channel,
-        templateId: values.templateId,
-        providerCampaignName: values.channel === 'WHATSAPP' ? values.providerCampaignName : undefined,
-        templateParams: values.templateParams ? values.templateParams.split(',').map((item) => item.trim()) : [],
-        audienceFilter: {
-          recipientTypes: values.recipientTypes,
-          roles: values.roles,
-          branchIds: values.branchIds,
-          vendorIds: values.vendorIds,
-          excludeMobiles: values.excludeMobiles ? values.excludeMobiles.split(/[\s,]+/).filter(Boolean) : [],
-          manualMobiles: values.manualMobiles ? values.manualMobiles.split(/[\s,]+/).filter(Boolean) : [],
-          tags: values.tags ? values.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-          segments: values.segments ? values.segments.split(',').map((s) => s.trim()).filter(Boolean) : [],
-          customerType: values.customerType || undefined,
-        },
-        scheduledAt: values.scheduledAt || undefined,
+  const onSubmit = async (values: CampaignFormValues) => {
+    const payload = {
+      name: values.name,
+      channel: values.channel,
+      templateId: values.templateId,
+      providerCampaignName: values.channel === 'WHATSAPP' ? values.providerCampaignName : undefined,
+      templateParams: values.templateParams ? values.templateParams.split(',').map((item) => item.trim()) : [],
+      audienceFilter: {
+        recipientTypes: values.recipientTypes,
+        roles: values.roles,
+        branchIds: values.branchIds,
+        vendorIds: values.vendorIds,
+        excludeMobiles: values.excludeMobiles ? values.excludeMobiles.split(/[\s,]+/).filter(Boolean) : [],
+        manualMobiles: values.manualMobiles ? values.manualMobiles.split(/[\s,]+/).filter(Boolean) : [],
+        tags: values.tags ? values.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        segments: values.segments ? values.segments.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        customerType: values.customerType || undefined,
       },
-      { onSuccess: onClose }
-    );
+      scheduledAt: values.scheduledAt || undefined,
+    };
+
+    try {
+      const savedCampaign = campaign
+        ? await updateCampaign.mutateAsync({ id: campaign._id, ...payload })
+        : await createCampaign.mutateAsync(payload);
+
+      if (mediaFile) {
+        const uploaded = await mediaUpload.upload(mediaFile, 'MARKETING_MEDIA', savedCampaign._id);
+        await updateCampaign.mutateAsync({
+          id: savedCampaign._id,
+          media: { fileId: uploaded._id, url: uploaded.url, filename: mediaFile.name },
+        });
+      }
+
+      toast.success(campaign ? 'Campaign updated successfully' : 'Campaign created as draft');
+      onClose();
+    } catch (error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      toast.error(apiError.response?.data?.message ?? `Could not ${campaign ? 'update' : 'create'} campaign`);
+    }
   };
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -398,13 +416,18 @@ function UpdateCampaignForm({ campaign, onClose }: { campaign: Campaign; onClose
         <Input type="file" accept="image/*,video/*" disabled={mediaUpload.isPending} onChange={async (event) => {
           const file = event.target.files?.[0];
           if (!file) return;
+          if (!campaign) {
+            setMediaFile(file);
+            return;
+          }
           try {
             const uploaded = await mediaUpload.upload(file, 'MARKETING_MEDIA');
             await updateCampaign.mutateAsync({ id: campaign._id, media: { fileId: uploaded._id, url: uploaded.url, filename: file.name } });
             toast.success('Campaign media uploaded');
           } catch { toast.error('Media upload failed'); }
         }} />
-        {campaign.media?.url && <p className="text-xs text-muted-foreground">Current: {campaign.media.filename}</p>}
+        {campaign?.media?.url && <p className="text-xs text-muted-foreground">Current: {campaign.media.filename}</p>}
+        {!campaign && mediaFile && <p className="text-xs text-muted-foreground">Selected: {mediaFile.name}</p>}
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Customer Type</label>
@@ -413,8 +436,10 @@ function UpdateCampaignForm({ campaign, onClose }: { campaign: Campaign; onClose
           {customerTypes?.map((t) => <option key={t._id} value={t.key}>{t.label}</option>)}
         </select>
       </div>
-      <Button type="submit" className="w-full" disabled={updateCampaign.isPending}>
-        {updateCampaign.isPending ? 'Saving...' : 'Save Changes'}
+      <Button type="submit" className="w-full" disabled={createCampaign.isPending || updateCampaign.isPending || mediaUpload.isPending}>
+        {(createCampaign.isPending || updateCampaign.isPending || mediaUpload.isPending)
+          ? 'Saving...'
+          : campaign ? 'Save Changes' : 'Create Campaign'}
       </Button>
     </form>
   );
@@ -467,30 +492,30 @@ export default function CampaignsPage() {
           <h1 className="text-lg font-medium tracking-tight text-foreground">Marketing Campaigns</h1>
           <p className="text-[13px] text-muted-foreground">Launch targeted WhatsApp/Email campaigns to consented customer segments.</p>
         </div>
+        <FormSheet
+          triggerLabel="Create Campaign"
+          title="Create Campaign"
+          description="Add a new campaign using the same fields available while editing."
+        >
+          {(close) => <CampaignEditorForm onClose={close} />}
+        </FormSheet>
       </div>
 
-      <Tabs defaultValue="list" className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="list">All Campaigns</TabsTrigger>
-            <TabsTrigger value="create">Create Campaign</TabsTrigger>
-          </TabsList>
-
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search campaigns..."
-              className="w-64 pl-9 bg-background h-8 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <div className="flex items-center justify-end mb-4">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search campaigns..."
+            className="w-64 pl-9 bg-background h-8 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+      </div>
 
-        <TabsContent value="list">
-          <Card className="animate-in slide-in-from-right-4 fade-in duration-500 mt-2">
-            <CardContent className="p-0">
+      <Card className="animate-in slide-in-from-right-4 fade-in duration-500 mt-2">
+        <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex justify-center p-8 text-muted-foreground">Loading campaigns...</div>
               ) : isError ? (
@@ -542,7 +567,7 @@ export default function CampaignsPage() {
                                 description={`Update details for ${item.name}`}
                                 triggerElement={<Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"><Pencil className="w-4 h-4" /></Button>}
                               >
-                                {(close) => <UpdateCampaignForm campaign={item} onClose={close} />}
+                                {(close) => <CampaignEditorForm campaign={item} onClose={close} />}
                               </FormSheet>
                             )}
                             <Button
@@ -565,14 +590,8 @@ export default function CampaignsPage() {
                   />
                 </>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="create">
-          <CreateCampaignForm />
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
