@@ -13,12 +13,14 @@ export interface Master {
   meta?: Record<string, unknown>;
 }
 
-export function useMasters(types: string[]) {
+export function useMasters(types: string[], params?: { active?: boolean }) {
   return useQuery({
-    queryKey: ['masters', types],
+    queryKey: ['masters', types, params?.active ?? 'ALL'],
     queryFn: async () => {
       const responses = await Promise.all(
-        types.map((type) => apiClient.get<ApiSuccessEnvelope<Master[]>>(`/masters/${type}`, { params: { limit: 100 } }))
+        types.map((type) => apiClient.get<ApiSuccessEnvelope<Master[]>>(`/masters/${type}`, {
+          params: { limit: 100, ...(params?.active === undefined ? {} : { active: params.active }) },
+        }))
       );
       return responses.flatMap((res) => res.data.data);
     },

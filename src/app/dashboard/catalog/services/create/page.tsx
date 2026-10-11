@@ -1,15 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { AppFormField } from '@/components/ui/AppFormField';
 import { useCreateCatalogService } from '@/lib/hooks/useCatalogServices';
-import { useMasters } from '@/lib/hooks/useMasters';
+import { Master, useMasters } from '@/lib/hooks/useMasters';
+
+type LinkableField = 'complaintTypeIds' | 'symptomIds' | 'defectIds' | 'solutionTypeIds';
+
+const LINKED_MASTER_GROUPS: Array<{ field: LinkableField; masterType: string; label: string }> = [
+  { field: 'complaintTypeIds', masterType: 'COMPLAINT_TYPE', label: 'Complaint Types' },
+  { field: 'symptomIds', masterType: 'SYMPTOM', label: 'Symptoms' },
+  { field: 'defectIds', masterType: 'DEFECT', label: 'Defects' },
+  { field: 'solutionTypeIds', masterType: 'SOLUTION', label: 'Solutions' },
+];
 
 const createServiceSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -25,7 +34,17 @@ type CreateServiceValues = z.infer<typeof createServiceSchema>;
 export default function CreateServicePage() {
   const router = useRouter();
   const createService = useCreateCatalogService();
-  const { data: categories } = useMasters(['SERVICE_CATEGORY']);
+  const { data: categories, isLoading: categoriesLoading } = useMasters(['SERVICE_CATEGORY'], { active: true });
+  const { data: linkedMasters, isLoading: linkedMastersLoading } = useMasters(
+    LINKED_MASTER_GROUPS.map((group) => group.masterType),
+    { active: true },
+  );
+  const [linkedIds, setLinkedIds] = useState<Record<LinkableField, string[]>>({
+    complaintTypeIds: [],
+    symptomIds: [],
+    defectIds: [],
+    solutionTypeIds: [],
+  });
   const { register, handleSubmit, formState: { errors } } = useForm<CreateServiceValues>({
     resolver: zodResolver(createServiceSchema),
     defaultValues: { active: true, visitingCharge: 0, expectedDurationMinutes: 60 },
@@ -37,6 +56,7 @@ export default function CreateServicePage() {
         name: values.name,
         description: values.description,
         categoryId: values.categoryId,
+        ...linkedIds,
         pricing: { basePrice: values.basePrice, visitingCharge: values.visitingCharge },
         expectedDurationMinutes: values.expectedDurationMinutes,
         active: values.active,
@@ -90,7 +110,7 @@ export default function CreateServicePage() {
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       {...register('categoryId')}
                     >
-                      <option value="">Select a category...</option>
+                      <option value="">{categoriesLoading ? 'Loading active categories...' : 'Select an active category...'}</option>
                       {(categories || []).map((c) => <option key={c._id} value={c._id}>{c.label}</option>)}
                     </select>
                     {errors.categoryId && <p className="text-[0.8rem] font-medium text-destructive">{errors.categoryId.message}</p>}
@@ -103,6 +123,27 @@ export default function CreateServicePage() {
                     error={errors.basePrice?.message}
                     {...register('basePrice', { valueAsNumber: true })}
                   />
+                </div>
+
+                <div className="space-y-3 border-t pt-5">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Service Diagnosis Setup</h3>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      Choose the active options customers and technicians can use for this service.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {LINKED_MASTER_GROUPS.map((group) => (
+                      <MasterPicker
+                        key={group.field}
+                        label={group.label}
+                        loading={linkedMastersLoading}
+                        options={(linkedMasters || []).filter((master) => master.masterType === group.masterType)}
+                        selectedIds={linkedIds[group.field]}
+                        onChange={(ids) => setLinkedIds((current) => ({ ...current, [group.field]: ids }))}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -159,5 +200,47 @@ export default function CreateServicePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+function MasterPicker({
+  label,
+  loading,
+  options,
+  selectedIds,
+  onChange,
+}: {
+  label: string;
+  loading: boolean;
+  options: Master[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter((item) => item !== id) : [...selectedIds, id]);
+  };
+
+  return (
+    <fieldset className="min-w-0 rounded-md border border-border bg-muted/20 p-3">
+      <legend className="px-1 text-sm font-medium text-foreground">{label}</legend>
+      <div className="mt-1 max-h-36 space-y-1 overflow-y-auto pr-1">
+        {loading && <p className="py-2 text-xs text-muted-foreground">Loading active options...</p>}
+        {!loading && options.length === 0 && <p className="py-2 text-xs text-muted-foreground">No active options available.</p>}
+        {options.map((option) => (
+          <label key={option._id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1.5 text-sm hover:bg-muted">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input accent-primary"
+              checked={selectedIds.includes(option._id)}
+              onChange={() => toggle(option._id)}
+            />
+            <span className="min-w-0 truncate" title={option.label}>{option.label}</span>
+          </label>
+        ))}
+      </div>
+      {selectedIds.length > 0 && (
+        <p className="mt-2 border-t pt-2 text-xs font-medium text-primary">{selectedIds.length} selected</p>
+      )}
+    </fieldset>
   );
 }

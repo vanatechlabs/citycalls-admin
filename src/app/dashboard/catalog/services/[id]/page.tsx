@@ -4,7 +4,6 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { MediaGallery } from '@/components/media/MediaGallery';
@@ -47,6 +46,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   if (isError || !service) return <div className="p-8 text-center text-destructive">Failed to load service.</div>;
 
   const categoryLabel = categories?.find((c) => c._id === service.categoryId)?.label ?? 'N/A';
+  const selectableCategories = categories?.filter((category) => category.active || category._id === service.categoryId) ?? [];
 
   const handleEditClick = () => {
     reset({
@@ -122,8 +122,12 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Category</label>
                   <select className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm" {...register('categoryId')}>
-                    <option value="">Select category...</option>
-                    {(categories || []).map((c) => <option key={c._id} value={c._id}>{c.label}</option>)}
+                    <option value="">Select an active category...</option>
+                    {selectableCategories.map((c) => (
+                      <option key={c._id} value={c._id} disabled={!c.active}>
+                        {c.label}{c.active ? '' : ' (Inactive - currently assigned)'}
+                      </option>
+                    ))}
                   </select>
                   {errors.categoryId && <p className="text-sm text-destructive">{errors.categoryId.message}</p>}
                 </div>
@@ -226,7 +230,7 @@ function LinkedMastersCard({
 }) {
   const [adding, setAdding] = useState('');
   const linked = allMasters?.filter((m) => linkedIds?.includes(m._id)) ?? [];
-  const unlinked = allMasters?.filter((m) => !linkedIds?.includes(m._id)) ?? [];
+  const unlinked = allMasters?.filter((m) => m.active && !linkedIds?.includes(m._id)) ?? [];
 
   const remove = (masterId: string) => {
     updateService.mutate({ [field]: (linkedIds ?? []).filter((mid) => mid !== masterId) });
@@ -246,7 +250,7 @@ function LinkedMastersCard({
         <ul className="space-y-2 text-sm">
           {linked.map((m) => (
             <li key={m._id} className="flex items-center justify-between border-b pb-2">
-              <span>{m.label}</span>
+              <span>{m.label}{m.active ? '' : ' (Inactive)'}</span>
               <Button variant="ghost" size="sm" className="text-destructive h-6" onClick={() => remove(m._id)} disabled={updateService.isPending}>
                 Remove
               </Button>
@@ -256,7 +260,7 @@ function LinkedMastersCard({
         </ul>
         <div className="pt-4 flex gap-2">
           <select className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={adding} onChange={(e) => setAdding(e.target.value)}>
-            <option value="">Select...</option>
+            <option value="">Select an active option...</option>
             {unlinked.map((m) => <option key={m._id} value={m._id}>{m.label}</option>)}
           </select>
           <Button variant="outline" onClick={add} disabled={!adding || updateService.isPending}>Link</Button>

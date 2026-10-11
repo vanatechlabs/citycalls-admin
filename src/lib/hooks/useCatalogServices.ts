@@ -43,6 +43,10 @@ export interface CreateCatalogServiceInput {
   name: string;
   description?: string;
   categoryId: string;
+  complaintTypeIds?: string[];
+  symptomIds?: string[];
+  defectIds?: string[];
+  solutionTypeIds?: string[];
   pricing?: { basePrice?: number; visitingCharge?: number; inspectionCharge?: number; emergencyCharge?: number };
   expectedDurationMinutes?: number;
   warrantyPeriodDays?: number;
@@ -62,7 +66,7 @@ export function useCreateCatalogService() {
 
 export function useUpdateCatalogService(id: string) {
   const queryClient = useQueryClient();
-  return useMutation<CatalogService, AxiosError<ApiErrorEnvelope>, Partial<CreateCatalogServiceInput> & { complaintTypeIds?: string[]; symptomIds?: string[]; defectIds?: string[]; solutionTypeIds?: string[] }>({
+  return useMutation<CatalogService, AxiosError<ApiErrorEnvelope>, Partial<CreateCatalogServiceInput>>({
     mutationFn: async (input) => {
       const res = await apiClient.patch<ApiSuccessEnvelope<CatalogService>>(`/services/${id}`, input);
       return res.data.data;

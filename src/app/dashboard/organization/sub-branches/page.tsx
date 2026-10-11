@@ -48,6 +48,7 @@ function SubBranchForm({ subBranch, onClose }: { subBranch?: SubBranch; onClose:
       active: subBranch?.active ?? true,
     },
   });
+  const selectableBranches = (branches || []).filter((branch) => branch.active || branch._id === subBranch?.branchId);
 
   const onSubmit = (values: SubBranchFormValues) => {
     const payload = {
@@ -71,8 +72,10 @@ function SubBranchForm({ subBranch, onClose }: { subBranch?: SubBranch; onClose:
         <label className="text-sm font-medium">Parent Branch</label>
         <select className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm" {...register('branchId')}>
           <option value="">Select a branch...</option>
-          {(branches || []).map((b) => (
-            <option key={b._id} value={b._id}>{b.name}</option>
+          {selectableBranches.map((b) => (
+            <option key={b._id} value={b._id} disabled={!b.active}>
+              {b.name}{b.active ? '' : ' (Inactive - currently assigned)'}
+            </option>
           ))}
         </select>
         {errors.branchId && <p className="text-sm text-destructive">{errors.branchId.message}</p>}

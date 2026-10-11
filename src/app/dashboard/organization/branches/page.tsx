@@ -114,6 +114,7 @@ function BranchForm({ branch, onClose }: { branch?: Branch; onClose: () => void 
     },
   });
   const [categoryIds, setCategoryIds] = useState<string[]>(branch?.serviceCategoryIds ?? []);
+  const selectableCategories = (categories || []).filter((category) => category.active || categoryIds.includes(category._id));
   const [workingHours, setWorkingHours] = useState<WorkingHoursRow[]>(branch?.workingHours?.length ? branch.workingHours : defaultWorkingHours());
 
   const toggleCategory = (id: string) => {
@@ -160,12 +161,13 @@ function BranchForm({ branch, onClose }: { branch?: Branch; onClose: () => void 
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Service Categories</label>
         <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
-          {(categories || []).map((c) => (
+          {selectableCategories.map((c) => (
             <label key={c._id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="w-4 h-4" checked={categoryIds.includes(c._id)} onChange={() => toggleCategory(c._id)} />
-              {c.label}
+              <input type="checkbox" className="w-4 h-4" checked={categoryIds.includes(c._id)} onChange={() => toggleCategory(c._id)} disabled={!c.active} />
+              {c.label}{c.active ? '' : ' (Inactive - currently assigned)'}
             </label>
           ))}
+          {selectableCategories.length === 0 && <p className="px-1 py-2 text-xs text-muted-foreground">No active service categories available.</p>}
         </div>
       </div>
 
