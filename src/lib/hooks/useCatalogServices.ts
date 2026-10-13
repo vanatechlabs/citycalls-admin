@@ -18,12 +18,39 @@ export interface CatalogService {
   active: boolean;
 }
 
-export function useCatalogServices(params?: { vertical?: string }) {
+export interface CatalogServicesQueryParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  categoryId?: string;
+  active?: boolean;
+  vertical?: string;
+}
+
+export interface CatalogServicesPagedResult {
+  services: CatalogService[];
+  meta: { page: number; limit: number; total: number; totalPages: number } | null;
+}
+
+export function useCatalogServices(params?: CatalogServicesQueryParams) {
   return useQuery({
     queryKey: ['catalogServices', params],
     queryFn: async () => {
       const res = await apiClient.get<ApiSuccessEnvelope<CatalogService[]>>('/services', { params: { limit: 100, ...params } });
       return res.data.data;
+    },
+  });
+}
+
+export function useCatalogServicesPaged(params: CatalogServicesQueryParams) {
+  return useQuery({
+    queryKey: ['catalogServices', 'paged', params],
+    queryFn: async (): Promise<CatalogServicesPagedResult> => {
+      const res = await apiClient.get<ApiSuccessEnvelope<CatalogService[]>>('/services', { params });
+      return {
+        services: res.data.data,
+        meta: res.data.meta,
+      };
     },
   });
 }
