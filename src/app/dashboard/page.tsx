@@ -107,8 +107,8 @@ function StatCard({
 }) {
   const body = (
     <div
-      className="group relative p-4 border-2 border-slate-200 rounded-2xl transition-all duration-500 shadow-[rgba(60,64,67,0.3)_0px_1px_2px_0px,rgba(60,64,67,0.15)_0px_1px_3px_1px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 overflow-hidden h-full"
-      style={{ backgroundImage: `linear-gradient(135deg, #ffffff 50%, ${bg100} 100%)` }}
+      className="stat-card group relative p-4 border-2 border-slate-200 rounded-2xl transition-all duration-500 shadow-[rgba(60,64,67,0.3)_0px_1px_2px_0px,rgba(60,64,67,0.15)_0px_1px_3px_1px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:-translate-y-1 overflow-hidden h-full"
+      style={{ backgroundImage: `linear-gradient(135deg, #ffffff 50%, ${bg100} 100%)`, ['--stat-tint' as string]: bg100 }}
     >
       {/* Small bubbles continuously floating up from the right side (always on) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">

@@ -172,7 +172,7 @@ export default function MenuAccessPage() {
       navItems.map((group) => ({
         group: group.group,
         // A dropdown like "Manage Admin User" lists each of its sub-menus separately.
-        items: [...group.items, ...(group.group === 'Registration Section' ? registrationCategoryItems : [])].flatMap((item) =>
+        items: [...group.items, ...(group.group === 'Service Call Section' ? registrationCategoryItems : [])].flatMap((item) =>
           item.childAccess
             ? (item.children ?? []).map((child) => ({ key: menuKey(group.group, child.title), title: child.title, locked: false }))
             : [{ key: menuKey(group.group, item.title), title: item.title, locked: !!item.alwaysVisible }]

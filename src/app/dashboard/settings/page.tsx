@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { RegistrationNumberCard } from '@/components/settings/RegistrationNumberCard';
+import { NavbarStyleCard } from '@/components/settings/NavbarStyleCard';
 
 interface EmailEntry {
   id: string;
@@ -349,6 +350,9 @@ export default function SettingsPage() {
           <div className="space-y-5 lg:col-span-2">
             {/* Registration Number Series — saved on its own (has a backend) */}
             <RegistrationNumberCard />
+
+            {/* Website navbar: black / transparent — saved on its own (has a backend) */}
+            <NavbarStyleCard />
 
             {/* Office Locations */}
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">

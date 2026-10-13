@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ClipboardList, TriangleAlert } from 'lucide-react';
+import { ChevronDown, ClipboardList, TriangleAlert, X } from 'lucide-react';
 import { FREQUENCIES, SAFETY_CONCERNS } from '@/lib/registrations/constants';
 import type { IssueConfig } from '@/lib/registrations/issueConfig';
 import { ChoiceTile } from '../shared/ChoiceTile';
@@ -18,16 +18,48 @@ interface IssueDetailsCardProps {
   onToggleIssue: (issue: string) => void;
   // PhotoUploader, passed in so this card stays free of upload state.
   photoUploader: ReactNode;
+  // Several services in one go: each has its own card, which can be folded
+  // away (collapsed) or dropped (onRemove).
+  id?: string;
+  title?: string;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  onRemove?: () => void;
 }
 
-export function IssueDetailsCard({ form, update, config, serviceName, brands, issueError, onToggleIssue, photoUploader }: IssueDetailsCardProps) {
+export function IssueDetailsCard({
+  form, update, config, serviceName, brands, issueError, onToggleIssue, photoUploader,
+  id = 'issue-details', title = 'Issue Details', collapsed = false, onToggleCollapse, onRemove,
+}: IssueDetailsCardProps) {
+  const filled = [form.applianceType, form.issues.length ? `${form.issues.length} selected` : ''].filter(Boolean).join(' · ');
+  const actionButton = 'flex h-6 items-center gap-1 border px-2 text-[10px] font-bold transition-colors';
+
   return (
     <FormCard
-      id="issue-details"
+      id={id}
       icon={ClipboardList}
-      title="Issue Details"
-      hint={serviceName ? `Tell us more about the ${serviceName.toLowerCase()} requirement.` : 'Select a service above to see its issue options.'}
+      title={title}
+      hint={
+        collapsed
+          ? <span className={issueError ? 'font-bold text-red-500' : undefined}>{issueError ? 'Details missing — open to complete.' : filled || 'Not filled yet — open to add details.'}</span>
+          : serviceName ? `Tell us more about the ${serviceName.toLowerCase()} requirement.` : 'Select a service above to see its issue options.'
+      }
+      actions={(onToggleCollapse || onRemove) && (
+        <>
+          {onToggleCollapse && (
+            <button type="button" onClick={onToggleCollapse} aria-expanded={!collapsed} className={`${actionButton} border-gray-300 text-gray-600 hover:border-[#3e8914] hover:text-[#3e8914]`}>
+              {collapsed ? 'Expand' : 'Collapse'} <ChevronDown className={`h-3 w-3 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+            </button>
+          )}
+          {onRemove && (
+            <button type="button" onClick={onRemove} title="Remove this service" className={`${actionButton} border-red-200 text-red-600 hover:bg-red-50`}>
+              <X className="h-3 w-3" /> Remove
+            </button>
+          )}
+        </>
+      )}
     >
+      {!collapsed && (
       <div className="space-y-4">
         {config.showBrand && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -119,6 +151,7 @@ export function IssueDetailsCard({ form, update, config, serviceName, brands, is
           </Field>
         </div>
       </div>
+      )}
     </FormCard>
   );
 }

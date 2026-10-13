@@ -66,6 +66,8 @@ import {
   UserCog,
   Info,
   ClipboardPlus,
+  PhoneIncoming,
+  ListChecks,
   Refrigerator,
   Bug,
   Sofa,
@@ -177,6 +179,8 @@ export const navItems: { group: string; items: NavItem[] }[] = [
     items: [
       { title: 'Add BG Image', url: '/dashboard/backgrounds/add', icon: ImagePlus, module: 'marketing' },
       { title: 'BG List', url: '/dashboard/backgrounds/list', icon: Images, module: 'marketing' },
+      { title: 'Add Parallax Image', url: '/dashboard/backgrounds/parallax-add', icon: ImagePlus, module: 'marketing' },
+      { title: 'Parallax List', url: '/dashboard/backgrounds/parallax-list', icon: Images, module: 'marketing' },
     ],
   },
   {
@@ -205,11 +209,19 @@ export const navItems: { group: string; items: NavItem[] }[] = [
     ],
   },
   {
-    group: 'Registration Section',
+    group: 'Service Call Section',
     items: [
-      { title: 'New Call', url: '/dashboard/registrations/new', icon: ClipboardPlus, module: 'customers', action: 'create' },
+      { title: 'Add New Call', url: '/dashboard/registrations/new', icon: ClipboardPlus, module: 'customers', action: 'create' },
       // + "All Categories" and one dropdown per Navbar List menu, added at
       // render time by useRegistrationCategoryItems().
+    ],
+  },
+  {
+    // Phone calls that only asked about a service (name, mobile, service, source).
+    group: 'Call Enquiry Section',
+    items: [
+      { title: 'Add Call Enquiry', url: '/dashboard/call-enquiries/add', icon: PhoneIncoming, module: 'customers', action: 'create' },
+      { title: 'Call Enquiry List', url: '/dashboard/call-enquiries/list', icon: ListChecks, module: 'customers' },
     ],
   },
   {
@@ -351,7 +363,7 @@ export const navItems: { group: string; items: NavItem[] }[] = [
   },
 ];
 
-// Registration Section's list menus: "All Categories" plus one per Navbar List
+// Service Call Section's list menus: "All Categories" plus one per Navbar List
 // menu, each expanding into All / Pending / Active / Completed. Built from
 // Navbar List so a new menu there gets its own entry here automatically.
 function categoryIcon(slug: string): React.ComponentType<{ className?: string }> {
@@ -433,7 +445,7 @@ function AdminSidebarContent() {
   const allowedMenus = me && me.role !== 'SUPER_ADMIN' && Array.isArray(me.menuAccess) ? new Set(me.menuAccess) : null;
   const groups = navItems
     .map((group) =>
-      group.group === 'Registration Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
+      group.group === 'Service Call Section' ? { ...group, items: [...group.items, ...registrationCategoryItems] } : group
     )
     .map((group) =>
       group.group === 'Enquiry Section'
@@ -484,26 +496,23 @@ function AdminSidebarContent() {
       collapsible="icon"
       className={
         isBeautyMode
-          ? 'border-r border-pink-200 [&_[data-sidebar=sidebar]]:bg-white text-pink-950'
+          ? 'beauty-chrome border-r border-[#3a3020] [&_[data-sidebar=sidebar]]:bg-[#16120c] text-[#f3ead8]'
           : 'border-r-4 border-[#8cc63f] [&_[data-sidebar=sidebar]]:bg-white text-gray-800'
       }
     >
       <SidebarHeader
         className={
           isBeautyMode
-            ? 'h-14 flex flex-row justify-between items-center px-3 border-b border-pink-200 bg-white group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
+            ? 'h-14 flex flex-row justify-between items-center px-3 border-b border-[#3a3020] bg-white group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
             : 'h-14 flex flex-row justify-between items-center px-3 border-b border-[#3e8914]/30 bg-gradient-to-r from-white to-[#3e8914]/5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
         }
       >
         <Link href="/dashboard" className="flex min-w-0 items-center pl-3.5 group-data-[collapsible=icon]:hidden" aria-label="CityCalls dashboard">
-          {isBeautyMode ? (
-            <span className="text-3xl font-bold text-pink-500">CityCalls</span>
-          ) : (
-            // The brand wordmark (green "City", dark "Calls") — logo-dark.png is
-            // logo.png with the white "Calls" darkened for the white sidebar.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src="/logo-dark.png" alt="CityCalls" className="h-8 w-auto max-w-[150px] object-contain" />
-          )}
+          {/* The brand wordmark (green "City" + "Calls"), same in both modes:
+              logo.png has a white "Calls" for the black Beauty Mode sidebar,
+              logo-dark.png is the same logo with "Calls" darkened for the white one. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={isBeautyMode ? "/logo.png" : "/logo-dark.png"} alt="CityCalls" className="h-8 w-auto max-w-[150px] object-contain" />
         </Link>
         {/* Collapse / expand (desktop) — on mobile the navbar button opens the drawer */}
         <button
@@ -512,7 +521,7 @@ function AdminSidebarContent() {
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-md text-white shadow-sm transition-colors md:flex ${
-            isBeautyMode ? 'bg-pink-500 hover:bg-pink-600' : 'bg-[#3e8914] hover:bg-[#347311]'
+            isBeautyMode ? 'bg-[#d4a94a] hover:bg-[#e6b84f] [&_svg]:!text-[#17130d]' : 'bg-[#3e8914] hover:bg-[#347311]'
           }`}
         >
           <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} />
@@ -521,10 +530,10 @@ function AdminSidebarContent() {
       <SidebarContent
         className={
           isBeautyMode
-            ? 'bg-white [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#500724] [&::-webkit-scrollbar-thumb]:rounded-full'
+            ? 'bg-white [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#d4a94a] [&::-webkit-scrollbar-thumb]:rounded-full'
             : 'bg-white [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#3e8914] [&::-webkit-scrollbar-thumb]:rounded-full'
         }
-        style={{ scrollbarWidth: 'thin', scrollbarColor: isBeautyMode ? '#500724 transparent' : '#3e8914 transparent' }}
+        style={{ scrollbarWidth: 'thin', scrollbarColor: isBeautyMode ? '#d4a94a transparent' : '#3e8914 transparent' }}
       >
         {groups.map((group) => {
           return (
@@ -534,7 +543,7 @@ function AdminSidebarContent() {
                 nativeButton={false}
                 render={
                   <SidebarGroupLabel
-                    className={`h-6 w-full flex items-center justify-between cursor-pointer text-[9.5px] uppercase font-bold tracking-[0.035em] group-data-[collapsible=icon]:hidden ${isBeautyMode ? 'text-pink-400 hover:text-pink-500' : 'text-[#233D4D] hover:text-[#16283a]'}`}
+                    className={`h-6 w-full flex items-center justify-between cursor-pointer text-[9.5px] uppercase font-bold tracking-[0.035em] group-data-[collapsible=icon]:hidden ${isBeautyMode ? '!text-[#f08a8a] hover:!text-[#ffb3b3]' : '!text-[#4B1426] hover:!text-[#7a1f3d]'}`}
                   />
                 }
               >
@@ -558,14 +567,14 @@ function AdminSidebarContent() {
                                     tooltip={item.title}
                                     className={
                                       isBeautyMode
-                                        ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 transition-colors'
+                                        ? 'text-[12px] font-medium text-[#f3ead8] border border-transparent hover:bg-[#d4a94a]/10 hover:text-[#f3ead8] hover:border-[#d4a94a]/50 transition-colors'
                                         : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 transition-colors'
                                     }
-                                    style={{ color: isBeautyMode ? '#500724' : '#1f2937' }}
+                                    style={{ color: isBeautyMode ? '#f3ead8' : '#1f2937' }}
                                   />
                                 }
                               >
-                                <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
+                                <item.icon className={isBeautyMode ? 'text-[#d4a94a]' : 'text-[#3e8914]'} />
                                 <span>{item.title}</span>
                                 <CountBadge count={item.badge} className="ml-auto" />
                                 <ChevronDown className={`${item.badge ? 'ml-1' : 'ml-auto'} h-3.5 w-3.5 shrink-0 transition-transform ${isSubmenuOpen(item) ? 'rotate-180' : ''}`} />
@@ -575,7 +584,7 @@ function AdminSidebarContent() {
                               {/* Left rail under the parent's icon marks how far the open submenu goes */}
                               <SidebarMenu
                                 className={`my-1 ml-4 w-auto border-l pl-3 text-[12px] font-medium group-data-[collapsible=icon]:hidden ${
-                                  isBeautyMode ? 'border-pink-300' : 'border-[#3e8914]/35'
+                                  isBeautyMode ? 'border-[#d4a94a]/40' : 'border-[#3e8914]/35'
                                 }`}
                               >
                                 {item.children.map((child) => (
@@ -586,10 +595,10 @@ function AdminSidebarContent() {
                                       isActive={currentUrl === child.url}
                                       className={
                                         isBeautyMode
-                                          ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 data-[active]:bg-pink-500 data-[active]:text-white data-[active]:border-pink-500 transition-colors'
+                                          ? 'text-[12px] font-medium text-[#f3ead8] border border-transparent hover:bg-[#d4a94a]/10 hover:text-[#f3ead8] hover:border-[#d4a94a]/50 data-[active]:bg-[#d4a94a] data-[active]:text-[#17130d] data-[active]:border-[#d4a94a] transition-colors'
                                           : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 data-[active]:bg-[#3e8914]/15 data-[active]:text-gray-900 data-[active]:border-[#3e8914] transition-colors'
                                       }
-                                      style={{ color: isBeautyMode ? (currentUrl === child.url ? '#fff' : '#500724') : '#1f2937' }}
+                                      style={{ color: isBeautyMode ? (currentUrl === child.url ? '#17130d' : '#f3ead8') : '#1f2937' }}
                                     >
                                       <span>{child.title}</span>
                                       <CountBadge count={child.badge} className="ml-auto" />
@@ -610,12 +619,12 @@ function AdminSidebarContent() {
                               isActive={currentUrl === item.url}
                               className={
                                 isBeautyMode
-                                  ? 'text-[12px] font-medium text-pink-950 border border-transparent hover:bg-pink-50 hover:text-pink-950 hover:border-pink-300 data-[active]:bg-pink-500 data-[active]:text-white data-[active]:border-pink-500 transition-colors'
+                                  ? 'text-[12px] font-medium text-[#f3ead8] border border-transparent hover:bg-[#d4a94a]/10 hover:text-[#f3ead8] hover:border-[#d4a94a]/50 data-[active]:bg-[#d4a94a] data-[active]:text-[#17130d] data-[active]:border-[#d4a94a] transition-colors'
                                   : 'text-[12px] font-medium text-gray-800 border border-transparent hover:bg-[#3e8914]/5 hover:text-gray-800 hover:border-[#3e8914]/40 data-[active]:bg-[#3e8914]/15 data-[active]:text-gray-900 data-[active]:border-[#3e8914] transition-colors'
                               }
-                              style={{ color: isBeautyMode ? (currentUrl === item.url ? '#fff' : '#500724') : '#1f2937' }}
+                              style={{ color: isBeautyMode ? (currentUrl === item.url ? '#17130d' : '#f3ead8') : '#1f2937' }}
                             >
-                              <item.icon className={isBeautyMode ? undefined : 'text-[#3e8914]'} />
+                              <item.icon className={isBeautyMode ? 'text-[#d4a94a]' : 'text-[#3e8914]'} />
                               <span>{item.title}</span>
                               <CountBadge count={item.badge} className="ml-auto" />
                             </SidebarMenuButton>
@@ -630,7 +639,7 @@ function AdminSidebarContent() {
           </Collapsible>
         )})}
       </SidebarContent>
-      <SidebarFooter className={isBeautyMode ? 'p-2 border-t border-pink-200' : 'p-2 border-t border-black/10'}>
+      <SidebarFooter className={isBeautyMode ? 'p-2 border-t border-[#3a3020]' : 'p-2 border-t border-black/10'}>
         <button
           type="button"
           onClick={handleLogout}

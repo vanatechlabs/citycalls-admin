@@ -26,8 +26,9 @@ export function matchState(raw?: string): string {
 }
 
 export const LANGUAGES = ['English', 'Hindi'];
-export const HEARD_FROM = ['Google', 'Facebook', 'WhatsApp', 'LinkedIn', 'Just Dial', 'TradeMart', 'Friend', 'Other'];
-export const REFERENCE_SOURCES = ['Friend', 'Other'];
+export const HEARD_FROM = ['Google', 'Facebook', 'Instagram', 'WhatsApp', 'LinkedIn', 'Just Dial', 'TradeMart', 'Website', 'Friend', 'Referral', 'Other'];
+// Sources that also ask who / what it was.
+export const REFERENCE_SOURCES = ['Friend', 'Referral', 'Other'];
 export const FREQUENCIES: IssueFrequency[] = ['Always', 'Sometimes', 'Occasionally', 'Once'];
 export const SAFETY_CONCERNS = ['Electrical Hazard', 'Gas / Water Leakage', 'No safety concern'];
 export const TIME_SLOTS = [
