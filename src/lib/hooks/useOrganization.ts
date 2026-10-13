@@ -54,11 +54,13 @@ export interface Team {
   createdAt: string;
 }
 
-export function useBranches() {
+export function useBranches(params?: { active?: boolean }) {
   return useQuery({
-    queryKey: ['branches'],
+    queryKey: ['branches', params?.active ?? 'ALL'],
     queryFn: async () => {
-      const res = await apiClient.get<ApiSuccessEnvelope<Branch[]>>('/branches', { params: { limit: 100 } });
+      const res = await apiClient.get<ApiSuccessEnvelope<Branch[]>>('/branches', {
+        params: { limit: 100, ...(params?.active === undefined ? {} : { active: params.active }) },
+      });
       return res.data.data;
     },
   });

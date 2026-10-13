@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Database, Edit, Pencil, Image as ImageIcon, Layers, Plus, Search, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -70,7 +70,9 @@ function MasterImageCell({ masterId }: { masterId: string }) {
 }
 
 export default function MastersPage() {
-  const canEdit = usePermission('config', 'manageSettings');
+  const hasEditPermission = usePermission('config', 'manageSettings');
+  const [hydrated, setHydrated] = useState(false);
+  const canEdit = hydrated && hasEditPermission;
   const [selectedType, setSelectedType] = useState('SERVICE_CATEGORY');
   const { data: masters = [], isLoading, isError } = useMasters([selectedType]);
   const createMaster = useCreateMaster();
@@ -86,6 +88,10 @@ export default function MastersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   const editing = masters.find((m) => m._id === editingId) ?? null;
   const editingImages = useMasterImage(editingId);
   const currentImage = editingImages[editingImages.length - 1];
@@ -95,7 +101,12 @@ export default function MastersPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? masters.filter((m) => m.label.toLowerCase().includes(q) || m.key.toLowerCase().includes(q)) : masters;
+    const items = q ? masters.filter((m) => m.label.toLowerCase().includes(q) || m.key.toLowerCase().includes(q)) : masters;
+    return [...items].sort((a, b) => {
+      if (a.active !== b.active) return a.active ? -1 : 1;
+      const order = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      return order || a.label.localeCompare(b.label);
+    });
   }, [masters, search]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -302,9 +313,14 @@ export default function MastersPage() {
                           <input type="file" accept={IMAGE_TYPES.join(',')} onChange={pickImage} className="hidden" />
                         </label>
                         <p className="text-[11px] text-gray-500">
-                          {imageFile ? <><span className="font-bold text-gray-700">{imageFile.file.name}</span> — saved with the entry.</> : 'Click the box to choose an icon (JPG, PNG, WebP or SVG).'}
+                          {imageFile ? <><span className="font-bold text-gray-700">{imageFile.file.name}</span> — saved with the entry.</> : 'Click the box to choose an icon (JPG, PNG, WebP or SVG). Use a square 1:1 image for customer-app category cards.'}
                         </p>
                       </div>
+                      {selectedType === 'SERVICE_CATEGORY' && (
+                        <p className="mt-2 rounded-[4px] border border-[#3e8914]/20 bg-[#3e8914]/5 px-2 py-1 text-[11px] font-semibold text-[#2f6b0f]">
+                          Customer app category image guideline: upload only 1:1 square images so the home-screen cards crop cleanly.
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex gap-2 pt-2">
