@@ -23,6 +23,8 @@ import {
   useCatalogServicesPaged,
   CatalogService,
   useDeleteCatalogService,
+  useBulkChangeServiceCategory,
+  useClearUnusedDiagnosticLinks,
 } from '@/lib/hooks/useCatalogServices';
 import { useMasters } from '@/lib/hooks/useMasters';
 
@@ -98,6 +100,107 @@ function ServicesPageContent() {
   }, [allCategories, vertical]);
 
   const deleteService = useDeleteCatalogService();
+  const bulkChangeCategory = useBulkChangeServiceCategory();
+  const clearLinks = useClearUnusedDiagnosticLinks();
+
+  const handleClearLinks = async () => {
+    const result = await Swal.fire({
+      title: 'Clean up Beauty & Help Now links?',
+      text: 'Removes complaint / symptom / defect / solution links from every Beauty & Salon and Help Now service. Other categories are not touched.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, clean up',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#3e8914',
+      cancelButtonColor: '#64748b',
+    });
+    if (!result.isConfirmed) return;
+    clearLinks.mutate(undefined, {
+      onSuccess: (r) =>
+        void Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: r.cleared > 0 ? `Cleaned ${r.cleared} service(s)` : 'Nothing to clean - already tidy',
+          timer: 2200,
+          showConfirmButton: false,
+        }),
+      onError: (err) =>
+        void Swal.fire({
+          icon: 'error',
+          title: 'Could not clean up links',
+          text: err.response?.data?.message ?? 'An error occurred.',
+        }),
+    });
+  };
+
+  // Selection survives page changes and filters so a batch can be built up
+  // across several pages before being moved.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategory, setBulkCategory] = useState('');
+  const pageIds = services.map((s) => s._id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const someOnPageSelected = pageIds.some((id) => selectedIds.has(id));
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const togglePage = () =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBulkCategory('');
+  };
+
+  const handleBulkMove = async () => {
+    const target = allCategories?.find((c) => c._id === bulkCategory);
+    if (!target || selectedIds.size === 0) return;
+    const result = await Swal.fire({
+      title: 'Change category?',
+      text: `Move ${selectedIds.size} selected service(s) to "${target.label}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, move',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#3e8914',
+      cancelButtonColor: '#64748b',
+    });
+    if (!result.isConfirmed) return;
+    bulkChangeCategory.mutate(
+      { ids: [...selectedIds], categoryId: bulkCategory },
+      {
+        onSuccess: (r) => {
+          clearSelection();
+          void Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: `${r.modified} service(s) moved to ${target.label}`,
+            timer: 2200,
+            showConfirmButton: false,
+          });
+        },
+        onError: (err) => {
+          void Swal.fire({
+            icon: 'error',
+            title: 'Could not change category',
+            text: err.response?.data?.message ?? 'An error occurred while moving the services.',
+          });
+        },
+      },
+    );
+  };
 
   const categoryLabel = (id?: string) =>
     allCategories?.find((c) => c._id === id)?.label ?? 'N/A';
@@ -201,6 +304,15 @@ function ServicesPageContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClearLinks}
+            disabled={clearLinks.isPending}
+            title="Remove unused complaint/symptom/defect/solution links from Beauty & Help Now services"
+          >
+            {clearLinks.isPending ? 'Cleaning...' : 'Clean Beauty & Help Now links'}
+          </Button>
           <Button
             size="sm"
             render={<Link href="/dashboard/catalog/services/create" />}
@@ -322,6 +434,40 @@ function ServicesPageContent() {
         </div>
       </div>
 
+      {/* Bulk action bar — appears once at least one row is ticked */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-[#3e8914]/30 bg-[#f1f8ec] px-4 py-2.5 shadow-sm">
+          <span className="text-sm font-semibold text-foreground">
+            {selectedIds.size} selected
+          </span>
+          <select
+            value={bulkCategory}
+            onChange={(e) => setBulkCategory(e.target.value)}
+            className="h-9 min-w-[200px] rounded-md border border-input bg-white px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+          >
+            <option value="">Move to category...</option>
+            {(allCategories ?? [])
+              .filter((c) => c.active)
+              .map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.label}
+                </option>
+              ))}
+          </select>
+          <Button
+            size="sm"
+            onClick={handleBulkMove}
+            disabled={!bulkCategory || bulkChangeCategory.isPending}
+            className="bg-[#3e8914] text-white hover:bg-[#347510]"
+          >
+            {bulkChangeCategory.isPending ? 'Moving...' : 'Apply'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearSelection} className="ml-auto text-muted-foreground">
+            Clear selection
+          </Button>
+        </div>
+      )}
+
       {/* Services Table View */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-12 bg-white rounded-lg border text-muted-foreground gap-3">
@@ -348,6 +494,32 @@ function ServicesPageContent() {
               router.push(`/dashboard/catalog/services/${item._id}`)
             }
             columns={[
+              {
+                key: 'select',
+                header: (
+                  <input
+                    type="checkbox"
+                    aria-label="Select all services on this page"
+                    className="h-4 w-4 cursor-pointer accent-[#3e8914]"
+                    checked={allOnPageSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = !allOnPageSelected && someOnPageSelected;
+                    }}
+                    onChange={togglePage}
+                  />
+                ),
+                render: (item) => (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${item.name}`}
+                      className="h-4 w-4 cursor-pointer accent-[#3e8914]"
+                      checked={selectedIds.has(item._id)}
+                      onChange={() => toggleOne(item._id)}
+                    />
+                  </div>
+                ),
+              },
               {
                 key: 'name',
                 header: 'Service Name',

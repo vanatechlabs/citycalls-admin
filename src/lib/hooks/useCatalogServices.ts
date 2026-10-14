@@ -114,3 +114,34 @@ export function useDeleteCatalogService() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogServices'] }),
   });
 }
+
+export function useBulkChangeServiceCategory() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { matched: number; modified: number },
+    AxiosError<ApiErrorEnvelope>,
+    { ids: string[]; categoryId: string }
+  >({
+    mutationFn: async (input) => {
+      const res = await apiClient.patch<ApiSuccessEnvelope<{ matched: number; modified: number }>>(
+        '/services/bulk-category',
+        input,
+      );
+      return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogServices'] }),
+  });
+}
+
+export function useClearUnusedDiagnosticLinks() {
+  const queryClient = useQueryClient();
+  return useMutation<{ categories: number; cleared: number }, AxiosError<ApiErrorEnvelope>, void>({
+    mutationFn: async () => {
+      const res = await apiClient.post<ApiSuccessEnvelope<{ categories: number; cleared: number }>>(
+        '/services/clear-unused-diagnostics',
+      );
+      return res.data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogServices'] }),
+  });
+}
