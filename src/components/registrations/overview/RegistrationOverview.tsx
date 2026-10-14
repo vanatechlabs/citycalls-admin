@@ -128,55 +128,55 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
         <DetailTable>
           <tr>
             <Th>Full Name</Th>
-            <Td className="text-[14px] font-semibold" style={{ color: '#2563eb' }}>{r.fullName}</Td>
+            <Td className="text-[14px] font-semibold">{r.fullName}</Td>
             <Th>Registration No</Th>
-            <Td className="font-mono font-bold" style={{ color: '#4E1F6E' }}>{r.registrationNo}</Td>
+            <Td className="font-mono font-bold">{r.registrationNo}</Td>
           </tr>
           <tr>
             <Th>Date of Registration</Th>
-            <Td className="font-semibold" style={{ color: '#dc2626' }}>
-              {formatDate(r.createdAt)} <span className="ml-2 text-blue-600">{formatTime(r.createdAt)}</span>
+            <Td className="font-semibold">
+              {formatDate(r.createdAt)} <span className="ml-2 font-medium text-slate-500">{formatTime(r.createdAt)}</span>
             </Td>
             <Th>Source</Th>
             <Td><SourceBadge source={r.source} /></Td>
           </tr>
           <tr>
             <Th>Selected Service</Th>
-            <Td className="font-semibold" style={{ color: '#063B00' }}>{r.serviceName}</Td>
+            <Td className="font-semibold">{r.serviceName}</Td>
             <Th>Service Category</Th>
-            <Td className="font-semibold text-blue-600">{r.serviceCategory}</Td>
+            <Td className="font-semibold">{r.serviceCategory}</Td>
           </tr>
           <tr>
             <Th>Preferred Visit Date</Th>
             <Td className="font-semibold">{r.preferredDate ? formatDate(r.preferredDate) : undefined}</Td>
             <Th>Time Slot</Th>
-            <Td>{r.timeSlot && <Chip tone="green">{r.timeSlot}</Chip>}</Td>
+            <Td className="font-semibold">{r.timeSlot}</Td>
           </tr>
           <tr>
             <Th>Discount Applied</Th>
-            <Td>{r.couponCode && <Chip tone="red">{r.couponCode} Applied</Chip>}</Td>
+            <Td className="font-mono font-semibold">{r.couponCode && `${r.couponCode} Applied`}</Td>
             <Th>Status</Th>
             <Td><StatusBadge status={r.status} size="md" /></Td>
           </tr>
           <tr>
             <Th>Mobile Number</Th>
-            <Td className="font-medium" style={{ color: '#2563eb' }}>
+            <Td className="font-medium">
               {r.phone}
               {r.altPhone && <span className="ml-1 text-[11px] font-medium text-slate-500">(Alt: {r.altPhone})</span>}
             </Td>
             <Th>Email Address</Th>
-            <Td className="font-medium" style={{ color: '#2563eb' }}>{r.email}</Td>
+            <Td className="font-medium">{r.email}</Td>
           </tr>
           <tr>
             <Th>Created By</Th>
             <Td className="font-semibold">
               {r.createdBy?.name}
-              <span className="ml-2 text-[11px] font-medium text-blue-600">{formatDate(r.createdAt)} {formatTime(r.createdAt)}</span>
+              <span className="ml-2 text-[11px] font-medium text-slate-500">{formatDate(r.createdAt)} {formatTime(r.createdAt)}</span>
             </Td>
             <Th>Updated By</Th>
-            <Td className="font-semibold text-[#4B1426]">
+            <Td className="font-semibold">
               {r.updatedBy?.name}
-              <span className="ml-2 text-[11px] font-medium text-blue-600">{formatDate(r.updatedAt)} {formatTime(r.updatedAt)}</span>
+              <span className="ml-2 text-[11px] font-medium text-slate-500">{formatDate(r.updatedAt)} {formatTime(r.updatedAt)}</span>
             </Td>
           </tr>
           <tr>

@@ -82,7 +82,12 @@ export function RegistrationForm({ registration, enquiry }: { registration?: Reg
   // Editing: exactly one service (a registration is for one service).
   const initialEntries = (): ServiceEntry[] => {
     if (registration) return [{ ...newEntry(registration.serviceId ?? ''), issue: issueFieldsOf(formStateFromRegistration(registration)) }];
-    return enquiry?.serviceId ? [newEntry(enquiry.serviceId)] : [];
+    if (!enquiry) return [];
+    // Every service asked about that is in Navbar List ("Other" ones are typed, so skipped).
+    const ids = enquiry.services?.length
+      ? enquiry.services.flatMap((s) => (s.serviceId ? [s.serviceId] : []))
+      : enquiry.serviceId ? [enquiry.serviceId] : [];
+    return [...new Set(ids)].map((id) => newEntry(id));
   };
 
   const [form, setForm] = useState<RegistrationFormState>(initialState);

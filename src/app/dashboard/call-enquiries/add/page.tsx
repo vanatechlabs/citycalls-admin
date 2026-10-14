@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 
 import type { ApiErrorEnvelope } from '@/lib/api/client';
 import {
-  CALL_ENQUIRY_SOURCES, CallEnquiry, CallEnquirySource, SOURCES_WITH_DETAIL, useCallEnquiry, useSaveCallEnquiry,
+  CALL_ENQUIRY_SOURCES, CallEnquiry, CallEnquiryService, CallEnquirySource, SOURCES_WITH_DETAIL, useCallEnquiry, useSaveCallEnquiry,
 } from '@/lib/hooks/useCallEnquiries';
 import { useRegistrationServices } from '@/lib/hooks/useRegistrations';
 import { ChoiceTile } from '@/components/registrations/shared/ChoiceTile';
@@ -20,21 +20,26 @@ import { CARD, CARD_TITLE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, SECONDARY_B
 // Call Enquiry Section → Add Call Enquiry: a phone call that only asked about
 // a service — who called, for which service and where they heard of us.
 
-// `serviceId` value for a service that isn't in Navbar List (typed by hand).
-const OTHER_SERVICE = 'other';
-
 interface FormState {
   name: string;
   phone: string;
-  serviceId: string;
-  // The service's name when "Other" is picked.
+  // Navbar List services picked, in the order they were ticked.
+  serviceIds: string[];
+  // "Other service" ticked, and what was typed for it.
+  otherOn: boolean;
   otherService: string;
   source: CallEnquirySource | '';
   sourceDetail: string;
   remarks: string;
 }
 
-const emptyForm: FormState = { name: '', phone: '', serviceId: '', otherService: '', source: '', sourceDetail: '', remarks: '' };
+const emptyForm: FormState = { name: '', phone: '', serviceIds: [], otherOn: false, otherService: '', source: '', sourceDetail: '', remarks: '' };
+
+// Older enquiries only have the single serviceId / serviceName.
+function storedServicesOf(existing: CallEnquiry): CallEnquiryService[] {
+  if (existing.services?.length) return existing.services;
+  return [{ serviceId: existing.serviceId, name: existing.serviceName, category: existing.serviceCategory }];
+}
 
 function errorMessage(error: unknown) {
   const envelope = (error as AxiosError<ApiErrorEnvelope>)?.response?.data;
@@ -45,12 +50,14 @@ function errorMessage(error: unknown) {
 function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
   const router = useRouter();
   const isEditMode = !!existing;
+  const stored = existing ? storedServicesOf(existing) : [];
   const initialForm: FormState = existing
     ? {
         name: existing.name, phone: existing.phone,
+        serviceIds: [...new Set(stored.flatMap((s) => (s.serviceId ? [s.serviceId] : [])))],
         // No Navbar List link stored → it was typed in as "Other".
-        serviceId: existing.serviceId ?? OTHER_SERVICE,
-        otherService: existing.serviceId ? '' : existing.serviceName,
+        otherOn: stored.some((s) => !s.serviceId),
+        otherService: stored.filter((s) => !s.serviceId).map((s) => s.name).join(', '),
         source: existing.source, sourceDetail: existing.sourceDetail ?? '', remarks: existing.remarks ?? '',
       }
     : emptyForm;
@@ -61,13 +68,24 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
   const save = useSaveCallEnquiry();
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((prev) => ({ ...prev, [key]: value }));
-  const menu = menus.find((m) => m.services.some((s) => s.id === form.serviceId));
-  const service = menu?.services.find((s) => s.id === form.serviceId);
-  // Editing an enquiry whose navbar link was removed: keep its stored name.
-  const storedService = existing && existing.serviceId === form.serviceId && !service ? existing : undefined;
-  const isOther = form.serviceId === OTHER_SERVICE;
-  const serviceName = isOther ? form.otherService.trim() : service?.name ?? storedService?.serviceName ?? '';
-  const categoryName = isOther ? 'Other' : menu?.name ?? storedService?.serviceCategory ?? '';
+  const toggleService = (id: string) =>
+    setForm((prev) => ({ ...prev, serviceIds: prev.serviceIds.includes(id) ? prev.serviceIds.filter((x) => x !== id) : [...prev.serviceIds, id] }));
+
+  // Picked services with their names / menus. One whose navbar link was since
+  // removed keeps the name it was saved with.
+  const picked: CallEnquiryService[] = form.serviceIds.flatMap((id) => {
+    const menu = menus.find((m) => m.services.some((s) => s.id === id));
+    const service = menu?.services.find((s) => s.id === id);
+    if (menu && service) return [{ serviceId: id, name: service.name, category: menu.name }];
+    const old = stored.find((s) => s.serviceId === id);
+    return old ? [old] : [];
+  });
+  const otherName = form.otherService.trim();
+  if (form.otherOn && otherName) picked.push({ name: otherName, category: 'Other' });
+  // Stored links no longer in Navbar List — shown under Other so they can be unticked.
+  const removedStored = stored.filter((s) => s.serviceId && !menus.some((m) => m.services.some((sv) => sv.id === s.serviceId)));
+  const serviceName = picked.map((s) => s.name).join(', ');
+  const categoryName = [...new Set(picked.map((s) => s.category).filter(Boolean))].join(', ');
 
   // Service list narrowed by the search box (matches the service or its menu).
   const q = serviceSearch.trim().toLowerCase();
@@ -80,7 +98,9 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
     e.preventDefault();
     const warn = (title: string) => void Swal.fire({ icon: 'warning', title, confirmButtonColor: '#3e8914' });
     if (!/^[6-9]\d{9}$/.test(form.phone)) return warn('Enter a valid 10-digit mobile number');
-    if (!serviceName) return warn(isOther ? 'Please type the service they asked about' : 'Please select the service they asked about');
+    if (form.otherOn && !otherName) return warn('Please type the other service they asked about');
+    if (picked.length === 0) return warn('Please select the service(s) they asked about');
+    if (picked.length > 20) return warn('Select up to 20 services');
     if (!form.source) return warn('Please select where they heard about us');
 
     try {
@@ -88,10 +108,11 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
         ...(existing ? { id: existing._id } : {}),
         name: form.name.trim(),
         phone: form.phone,
-        // Editing to "Other" sends null so the old navbar link is dropped.
-        serviceId: isOther ? (existing ? null : undefined) : service?.id ?? storedService?.serviceId,
+        // First Navbar List link; editing to only "Other" sends null so the old link is dropped.
+        serviceId: picked.find((s) => s.serviceId)?.serviceId ?? (existing ? null : undefined),
         serviceName,
         serviceCategory: categoryName,
+        services: picked,
         source: form.source,
         sourceDetail: needsDetail ? form.sourceDetail.trim() : '',
         remarks: form.remarks.trim(),
@@ -125,7 +146,7 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
   const summary: [string, string][] = [
     ['Name', form.name],
     ['Mobile', form.phone ? `+91 ${form.phone}` : ''],
-    ['Service', serviceName],
+    [picked.length > 1 ? `Services (${picked.length})` : 'Service', serviceName],
     ['Category', categoryName],
     ['Source', form.source ? `${form.source}${needsDetail && form.sourceDetail ? ` — ${form.sourceDetail}` : ''}` : ''],
   ];
@@ -155,9 +176,12 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
           </div>
         </FormCard>
 
-        <FormCard icon={PhoneIncoming} title="Enquiry For" hint="The service they asked about — services come from Navbar List. Not in the list? Pick Other and type it.">
+        <FormCard icon={PhoneIncoming} title="Enquiry For" hint="The services they asked about — pick one or more from Navbar List. Not in the list? Tick Other and type it.">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <label className={`${FIELD_LABEL} mb-0`}>Select Service <span className="text-red-500">*</span></label>
+            <label className={`${FIELD_LABEL} mb-0`}>
+              Select Services <span className="text-red-500">*</span>
+              {picked.length > 0 && <span className="ml-1.5 normal-case text-[#3e8914]">({picked.length} selected)</span>}
+            </label>
             <div className="relative w-full max-w-[260px]">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <input
@@ -180,7 +204,7 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#4B1426]">{m.name}</p>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                     {m.services.map((sv) => (
-                      <ChoiceTile key={sv.id} compact variant="radio" selected={form.serviceId === sv.id} onClick={() => update('serviceId', sv.id)}>
+                      <ChoiceTile key={sv.id} compact selected={form.serviceIds.includes(sv.id)} onClick={() => toggleService(sv.id)}>
                         {sv.name}
                       </ChoiceTile>
                     ))}
@@ -193,16 +217,15 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
               <div>
                 <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#4B1426]">Other</p>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  {storedService?.serviceId && (
-                    <ChoiceTile compact variant="radio" selected onClick={() => {}}>
-                      {storedService.serviceName} (removed)
+                  {removedStored.map((s) => (
+                    <ChoiceTile key={s.serviceId} compact selected={form.serviceIds.includes(s.serviceId!)} onClick={() => toggleService(s.serviceId!)}>
+                      {s.name} (removed)
                     </ChoiceTile>
-                  )}
+                  ))}
                   <ChoiceTile
                     compact
-                    variant="radio"
-                    selected={isOther}
-                    onClick={() => setForm((prev) => ({ ...prev, serviceId: OTHER_SERVICE, otherService: prev.otherService || serviceSearch.trim() }))}
+                    selected={form.otherOn}
+                    onClick={() => setForm((prev) => ({ ...prev, otherOn: !prev.otherOn, otherService: prev.otherService || serviceSearch.trim() }))}
                   >
                     Other service
                   </ChoiceTile>
@@ -211,7 +234,7 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
             </div>
           )}
 
-          {isOther && (
+          {form.otherOn && (
             <div className="mt-3">
               <Field label="Service Name" required hint="Type the service they asked about.">
                 <input
