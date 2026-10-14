@@ -94,9 +94,11 @@ function ServicesPageContent() {
   const { data: allCategories } = useMasters(['SERVICE_CATEGORY']);
   // If vertical is specified (e.g. BEAUTY), filter categories belonging to that vertical
   const categories = useMemo(() => {
-    if (!allCategories) return [];
-    if (!vertical) return allCategories;
-    return allCategories.filter((c) => c.meta?.vertical === vertical);
+    // Only active categories belong in the filter; inactive ones are still
+    // resolved by categoryLabel() so existing rows keep showing their name.
+    const active = (allCategories ?? []).filter((c) => c.active);
+    if (!vertical) return active;
+    return active.filter((c) => c.meta?.vertical === vertical);
   }, [allCategories, vertical]);
 
   const deleteService = useDeleteCatalogService();
