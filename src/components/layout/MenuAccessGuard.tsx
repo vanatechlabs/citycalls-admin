@@ -43,7 +43,7 @@ function Guard({ children }: { children: ReactNode }) {
   if (allowed && pathname !== '/dashboard') {
     const routes: MenuRoute[] = [];
     for (const group of navItems) {
-      const items = group.group === 'Registration Section' ? [...group.items, ...registrationItems] : group.items;
+      const items = group.group === 'Service Call Section' ? [...group.items, ...registrationItems] : group.items;
       for (const item of items) {
         if (item.alwaysVisible) continue;
         const keys = [menuKey(group.group, item.title)];
@@ -54,7 +54,7 @@ function Guard({ children }: { children: ReactNode }) {
       }
     }
     // Registration detail / edit pages belong to the whole section.
-    routes.push(toRoute('/dashboard/registrations', ['Registration Section::*']));
+    routes.push(toRoute('/dashboard/registrations', ['Service Call Section::*']));
 
     // Most specific match: longest path, then the one matching more query params
     // (e.g. Beauty Services = /catalog/services?vertical=BEAUTY vs. Services).

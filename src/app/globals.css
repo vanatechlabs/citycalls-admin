@@ -134,24 +134,413 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Beauty & Salon vertical reskin — pink accent, white/black neutrals.
-   Mirrors .dark's structure/mechanism (a class toggled on a root wrapper,
-   see AdminLayout.tsx + useBeautyMode.ts) so the rest of the app's shadcn
-   components (buttons, focus rings, badges) shift automatically. The
-   sidebar/navbar's own bg-black/hardcoded-hex chrome is switched separately
-   via conditional classes in those components, since they don't read these
-   tokens today. */
-.beauty {
-  --primary: oklch(0.65 0.24 5);
-  --primary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.96 0.03 5);
-  --accent-foreground: oklch(0.45 0.2 5);
-  --ring: oklch(0.65 0.24 5);
-  --secondary: oklch(0.97 0.02 5);
-  --secondary-foreground: oklch(0.45 0.2 5);
-  --sidebar-primary: oklch(0.65 0.24 5);
-  --sidebar-ring: oklch(0.65 0.24 5);
+/* Beauty & Salon mode — black & gold like salon.citycalls.in, for the sidebar
+   and the top bar only (they carry the `beauty-chrome` class while Beauty
+   Mode is on — see AdminSidebar.tsx / AdminNavbar.tsx). The pages themselves
+   look the same as in normal mode. Inside those two, the tokens below restyle
+   the shadcn pieces and the fixed colour classes (white, green, navy…) are
+   re-pointed to the dark palette. Unlayered on purpose, so it wins over utilities. */
+.beauty-chrome {
+  --bt-bg: #0d0b08;
+  --bt-surface: #16120c;
+  --bt-surface-2: #1e1910;
+  --bt-line: #3a3020;
+  --bt-gold: #d4a94a;
+  --bt-gold-bright: #e6b84f;
+  --bt-text: #f3ead8;
+  --bt-muted: #a89b82;
+  color-scheme: dark;
+
+  --background: var(--bt-bg);
+  --foreground: var(--bt-text);
+  --card: var(--bt-surface);
+  --card-foreground: var(--bt-text);
+  --popover: var(--bt-surface);
+  --popover-foreground: var(--bt-text);
+  --primary: var(--bt-gold);
+  --primary-foreground: #17130d;
+  --secondary: var(--bt-surface-2);
+  --secondary-foreground: var(--bt-text);
+  --muted: var(--bt-surface-2);
+  --muted-foreground: var(--bt-muted);
+  --accent: #2a2214;
+  --accent-foreground: var(--bt-gold-bright);
+  --border: var(--bt-line);
+  --input: var(--bt-line);
+  --ring: var(--bt-gold);
+  --sidebar: var(--bt-surface);
+  --sidebar-foreground: var(--bt-text);
+  --sidebar-primary: var(--bt-gold);
+  --sidebar-primary-foreground: #17130d;
+  --sidebar-accent: #2a2214;
+  --sidebar-accent-foreground: var(--bt-text);
+  --sidebar-border: var(--bt-line);
+  --sidebar-ring: var(--bt-gold);
 }
+
+/* beauty:generated — dark-theme values for the colour classes used across the admin
+   (written by a script from the classes in src/; the hand-written rules below win). */
+.beauty-chrome .bg-amber-100,
+.beauty-chrome .bg-amber-50,
+.beauty-chrome .bg-amber-50\/50 { background-color: rgba(245, 158, 11, 0.16); }
+.beauty-chrome .bg-blue-100,
+.beauty-chrome .bg-blue-50,
+.beauty-chrome .bg-blue-50\/50,
+.beauty-chrome .bg-blue-50\/70 { background-color: rgba(59, 130, 246, 0.16); }
+.beauty-chrome .bg-emerald-100,
+.beauty-chrome .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.16); }
+.beauty-chrome .bg-gray-100,
+.beauty-chrome .bg-gray-100\/90,
+.beauty-chrome .bg-gray-200,
+.beauty-chrome .bg-gray-50,
+.beauty-chrome .bg-gray-50\/30,
+.beauty-chrome .bg-gray-50\/50,
+.beauty-chrome .bg-gray-50\/60,
+.beauty-chrome .bg-slate-100,
+.beauty-chrome .bg-slate-200,
+.beauty-chrome .bg-slate-50,
+.beauty-chrome .bg-slate-50\/50,
+.beauty-chrome .bg-slate-50\/70,
+.beauty-chrome .bg-\[\#F7F9FB\],
+.beauty-chrome .bg-\[\#FAF9F6\],
+.beauty-chrome .bg-\[\#e8f5e9\],
+.beauty-chrome .bg-\[\#f0f3f6\],
+.beauty-chrome .bg-\[\#f0f4f8\],
+.beauty-chrome .bg-\[\#f0fdf4\],
+.beauty-chrome .bg-\[\#f4faf0\],
+.beauty-chrome .bg-\[\#f6f9f4\],
+.beauty-chrome .bg-\[\#f7f8f6\],
+.beauty-chrome .bg-\[\#f8fafc\],
+.beauty-chrome .bg-\[\#f8fbfa\],
+.beauty-chrome .bg-\[\#fafafa\],
+.beauty-chrome .bg-\[\#fafbfc\],
+.beauty-chrome .bg-\[\#fef2f2\] { background-color: var(--bt-surface-2); }
+.beauty-chrome .bg-green-100,
+.beauty-chrome .bg-green-50,
+.beauty-chrome .bg-green-50\/50,
+.beauty-chrome .bg-green-50\/60 { background-color: rgba(34, 197, 94, 0.16); }
+.beauty-chrome .bg-indigo-100,
+.beauty-chrome .bg-indigo-100\/50,
+.beauty-chrome .bg-indigo-50,
+.beauty-chrome .bg-indigo-50\/40,
+.beauty-chrome .bg-indigo-50\/50 { background-color: rgba(99, 102, 241, 0.16); }
+.beauty-chrome .bg-orange-100,
+.beauty-chrome .bg-orange-50,
+.beauty-chrome .bg-orange-50\/50 { background-color: rgba(249, 115, 22, 0.16); }
+.beauty-chrome .bg-pink-100\/50 { background-color: rgba(236, 72, 153, 0.16); }
+.beauty-chrome .bg-purple-100,
+.beauty-chrome .bg-purple-50,
+.beauty-chrome .bg-purple-50\/50 { background-color: rgba(168, 85, 247, 0.16); }
+.beauty-chrome .bg-red-100,
+.beauty-chrome .bg-red-50,
+.beauty-chrome .bg-red-50\/50 { background-color: rgba(239, 68, 68, 0.16); }
+.beauty-chrome .bg-rose-100,
+.beauty-chrome .bg-rose-50 { background-color: rgba(244, 63, 94, 0.16); }
+.beauty-chrome .bg-sky-50,
+.beauty-chrome .bg-sky-50\/50 { background-color: rgba(14, 165, 233, 0.16); }
+.beauty-chrome .bg-teal-50 { background-color: rgba(20, 184, 166, 0.16); }
+.beauty-chrome .bg-violet-50 { background-color: rgba(139, 92, 246, 0.16); }
+.beauty-chrome .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.16); }
+.beauty-chrome .border-amber-100,
+.beauty-chrome .border-amber-200,
+.beauty-chrome .border-amber-300 { border-color: rgba(245, 158, 11, 0.4); }
+.beauty-chrome .border-blue-100,
+.beauty-chrome .border-blue-100\/50,
+.beauty-chrome .border-blue-200 { border-color: rgba(59, 130, 246, 0.4); }
+.beauty-chrome .border-emerald-200 { border-color: rgba(16, 185, 129, 0.4); }
+.beauty-chrome .border-gray-100,
+.beauty-chrome .border-gray-200,
+.beauty-chrome .border-gray-300,
+.beauty-chrome .border-slate-100,
+.beauty-chrome .border-slate-200,
+.beauty-chrome .border-slate-200\/70,
+.beauty-chrome .border-slate-200\/80,
+.beauty-chrome .border-slate-300,
+.beauty-chrome .border-\[\#bae6fd\],
+.beauty-chrome .border-\[\#d8dce2\],
+.beauty-chrome .border-\[\#dfe4e8\],
+.beauty-chrome .border-\[\#e2e8f0\],
+.beauty-chrome .border-\[\#e4e7eb\],
+.beauty-chrome .border-\[\#e5e6e2\],
+.beauty-chrome .border-\[\#e5e7e6\],
+.beauty-chrome .border-\[\#e8e5df\],
+.beauty-chrome .border-\[\#f0f0ec\],
+.beauty-chrome .border-\[\#f0f2f5\],
+.beauty-chrome .border-\[\#fed7aa\],
+.beauty-chrome .border-\[\#ffe082\] { border-color: var(--bt-line); }
+.beauty-chrome .border-green-100,
+.beauty-chrome .border-green-200,
+.beauty-chrome .border-green-300 { border-color: rgba(34, 197, 94, 0.4); }
+.beauty-chrome .border-indigo-100,
+.beauty-chrome .border-indigo-200,
+.beauty-chrome .border-indigo-300 { border-color: rgba(99, 102, 241, 0.4); }
+.beauty-chrome .border-orange-100,
+.beauty-chrome .border-orange-200,
+.beauty-chrome .border-orange-300 { border-color: rgba(249, 115, 22, 0.4); }
+.beauty-chrome .border-purple-200,
+.beauty-chrome .border-purple-300 { border-color: rgba(168, 85, 247, 0.4); }
+.beauty-chrome .border-red-100,
+.beauty-chrome .border-red-200,
+.beauty-chrome .border-red-300 { border-color: rgba(239, 68, 68, 0.4); }
+.beauty-chrome .border-rose-100,
+.beauty-chrome .border-rose-200 { border-color: rgba(244, 63, 94, 0.4); }
+.beauty-chrome .border-sky-200,
+.beauty-chrome .border-sky-300 { border-color: rgba(14, 165, 233, 0.4); }
+.beauty-chrome .border-violet-200 { border-color: rgba(139, 92, 246, 0.4); }
+.beauty-chrome .from-slate-50 { --tw-gradient-from: #16120c; }
+.beauty-chrome .text-amber-600,
+.beauty-chrome .text-amber-700,
+.beauty-chrome .text-amber-800,
+.beauty-chrome .text-amber-900\/70 { color: #face85; }
+.beauty-chrome .text-blue-600,
+.beauty-chrome .text-blue-700,
+.beauty-chrome .text-blue-800 { color: #9dc0fa; }
+.beauty-chrome .text-emerald-600,
+.beauty-chrome .text-emerald-700,
+.beauty-chrome .text-emerald-800,
+.beauty-chrome .text-emerald-950 { color: #88dcc0; }
+.beauty-chrome .text-gray-400,
+.beauty-chrome .text-gray-500,
+.beauty-chrome .text-gray-600,
+.beauty-chrome .text-slate-400,
+.beauty-chrome .text-slate-500,
+.beauty-chrome .text-slate-600 { color: var(--bt-muted); }
+.beauty-chrome .text-gray-700,
+.beauty-chrome .text-gray-800,
+.beauty-chrome .text-gray-900,
+.beauty-chrome .text-slate-700,
+.beauty-chrome .text-slate-800,
+.beauty-chrome .text-slate-900,
+.beauty-chrome .text-slate-950,
+.beauty-chrome .text-\[\#006199\],
+.beauty-chrome .text-\[\#0369a1\],
+.beauty-chrome .text-\[\#063B00\],
+.beauty-chrome .text-\[\#0A66C2\],
+.beauty-chrome .text-\[\#0F172A\],
+.beauty-chrome .text-\[\#0F2854\],
+.beauty-chrome .text-\[\#0f172a\],
+.beauty-chrome .text-\[\#0f766e\],
+.beauty-chrome .text-\[\#111827\],
+.beauty-chrome .text-\[\#134698\],
+.beauty-chrome .text-\[\#14532d\],
+.beauty-chrome .text-\[\#166534\],
+.beauty-chrome .text-\[\#166b40\],
+.beauty-chrome .text-\[\#17130d\],
+.beauty-chrome .text-\[\#18233b\],
+.beauty-chrome .text-\[\#19274a\],
+.beauty-chrome .text-\[\#1d4ed8\],
+.beauty-chrome .text-\[\#1e293b\],
+.beauty-chrome .text-\[\#1e3a5f\],
+.beauty-chrome .text-\[\#233D4D\],
+.beauty-chrome .text-\[\#23471d\],
+.beauty-chrome .text-\[\#23471d\]\/80,
+.beauty-chrome .text-\[\#23714a\],
+.beauty-chrome .text-\[\#2563eb\],
+.beauty-chrome .text-\[\#273655\],
+.beauty-chrome .text-\[\#293681\],
+.beauty-chrome .text-\[\#293957\],
+.beauty-chrome .text-\[\#2a3855\],
+.beauty-chrome .text-\[\#2f6b0f\],
+.beauty-chrome .text-\[\#334155\],
+.beauty-chrome .text-\[\#35445f\],
+.beauty-chrome .text-\[\#414b5e\],
+.beauty-chrome .text-\[\#475569\],
+.beauty-chrome .text-\[\#4B1426\],
+.beauty-chrome .text-\[\#4D4D4D\],
+.beauty-chrome .text-\[\#59657a\],
+.beauty-chrome .text-\[\#5f6a7c\],
+.beauty-chrome .text-\[\#64748b\],
+.beauty-chrome .text-\[\#69758c\],
+.beauty-chrome .text-\[\#6c7587\],
+.beauty-chrome .text-\[\#b45309\],
+.beauty-chrome .text-\[\#c62828\],
+.beauty-chrome .text-\[\#dc2626\] { color: var(--bt-text); }
+.beauty-chrome .text-green-600,
+.beauty-chrome .text-green-700,
+.beauty-chrome .text-green-800 { color: #90e2ae; }
+.beauty-chrome .text-indigo-600,
+.beauty-chrome .text-indigo-700,
+.beauty-chrome .text-indigo-900 { color: #b1b2f8; }
+.beauty-chrome .text-orange-600,
+.beauty-chrome .text-orange-700,
+.beauty-chrome .text-orange-800 { color: #fcb98a; }
+.beauty-chrome .text-pink-600 { color: #f6a4cc; }
+.beauty-chrome .text-purple-600,
+.beauty-chrome .text-purple-700,
+.beauty-chrome .text-purple-950 { color: #d4aafb; }
+.beauty-chrome .text-red-600,
+.beauty-chrome .text-red-700,
+.beauty-chrome .text-red-800 { color: #f7a2a2; }
+.beauty-chrome .text-rose-600,
+.beauty-chrome .text-rose-700 { color: #fa9fae; }
+.beauty-chrome .text-sky-600,
+.beauty-chrome .text-sky-700 { color: #86d2f4; }
+.beauty-chrome .text-teal-700 { color: #8adcd2; }
+.beauty-chrome .text-violet-700,
+.beauty-chrome .text-violet-800 { color: #c5aefa; }
+.beauty-chrome .text-yellow-700 { color: #f4d984; }
+.beauty-chrome .to-indigo-100 { --tw-gradient-to: #27243e; }
+.beauty-chrome .to-orange-100 { --tw-gradient-to: #48270e; }
+.beauty-chrome .to-purple-100 { --tw-gradient-to: #362140; }
+.beauty-chrome .to-red-100 { --tw-gradient-to: #461d18; }
+.beauty-chrome .to-sky-100 { --tw-gradient-to: #14323d; }
+.beauty-chrome .bg-\[\#EFF6FF\] { background-color: color-mix(in srgb, #eff6ff 14%, #16120c); }
+.beauty-chrome .bg-\[\#e0f2fe\] { background-color: color-mix(in srgb, #e0f2fe 14%, #16120c); }
+.beauty-chrome .bg-\[\#fee2e2\] { background-color: color-mix(in srgb, #fee2e2 14%, #16120c); }
+.beauty-chrome .bg-\[\#ffebee\] { background-color: color-mix(in srgb, #ffebee 14%, #16120c); }
+.beauty-chrome .bg-\[\#fff1f2\] { background-color: color-mix(in srgb, #fff1f2 14%, #16120c); }
+.beauty-chrome .bg-\[\#fff7ed\] { background-color: color-mix(in srgb, #fff7ed 14%, #16120c); }
+.beauty-chrome .bg-\[\#fff8e1\] { background-color: color-mix(in srgb, #fff8e1 14%, #16120c); }
+.beauty-chrome .to-\[\#d1fae5\] { --tw-gradient-to: color-mix(in srgb, #d1fae5 14%, #16120c); }
+.beauty-chrome .to-\[\#dbeafe\] { --tw-gradient-to: color-mix(in srgb, #dbeafe 14%, #16120c); }
+.beauty-chrome .to-\[\#e8f5e9\] { --tw-gradient-to: color-mix(in srgb, #e8f5e9 14%, #16120c); }
+.beauty-chrome .to-\[\#ede9fe\] { --tw-gradient-to: color-mix(in srgb, #ede9fe 14%, #16120c); }
+.beauty-chrome .to-\[\#ffedd5\] { --tw-gradient-to: color-mix(in srgb, #ffedd5 14%, #16120c); }
+/* beauty:generated-end */
+
+/* Surfaces */
+.beauty-chrome .bg-white,
+.beauty-chrome .bg-background,
+.beauty-chrome .bg-card,
+.beauty-chrome .from-white { background-color: var(--bt-surface); --tw-gradient-from: var(--bt-surface); }
+.beauty-chrome .bg-gray-50,
+.beauty-chrome .bg-slate-50,
+.beauty-chrome .bg-slate-50\/80,
+.beauty-chrome .bg-gray-100,
+.beauty-chrome .bg-slate-100,
+.beauty-chrome .bg-\[\#fafafa\],
+.beauty-chrome .bg-\[\#f8fafc\],
+.beauty-chrome .bg-slate-50\/70,
+.beauty-chrome .bg-gray-50\/60 { background-color: var(--bt-surface-2); }
+.beauty-chrome .hover\:bg-gray-50:hover,
+.beauty-chrome .hover\:bg-slate-50:hover,
+.beauty-chrome .hover\:bg-slate-50\/80:hover,
+.beauty-chrome .hover\:bg-gray-100:hover,
+.beauty-chrome .hover\:bg-slate-100:hover,
+.beauty-chrome .hover\:bg-white:hover { background-color: #261f13; }
+
+/* Text */
+.beauty-chrome .text-gray-900,
+.beauty-chrome .text-gray-800,
+.beauty-chrome .text-gray-700,
+.beauty-chrome .text-slate-900,
+.beauty-chrome .text-slate-800,
+.beauty-chrome .text-slate-700,
+.beauty-chrome .text-\[\#18233b\],
+.beauty-chrome .text-\[\#334155\],
+.beauty-chrome .text-\[\#233D4D\],
+.beauty-chrome .text-black,
+.beauty-chrome .text-ink,
+.beauty-chrome .text-foreground { color: var(--bt-text); }
+.beauty-chrome .text-gray-600,
+.beauty-chrome .text-gray-500,
+.beauty-chrome .text-slate-600,
+.beauty-chrome .text-slate-500,
+.beauty-chrome .text-\[\#6c7587\],
+.beauty-chrome .text-gray-400,
+.beauty-chrome .text-slate-400,
+.beauty-chrome .text-muted-foreground { color: var(--bt-muted); }
+.beauty-chrome .text-\[\#3e8914\],
+.beauty-chrome .text-\[\#23471d\],
+.beauty-chrome .text-\[\#2f6b0f\],
+.beauty-chrome .text-\[\#4B1426\],
+.beauty-chrome .text-\[\#293681\],
+.beauty-chrome .text-\[\#DE802B\],
+.beauty-chrome .text-\[\#134698\] { color: var(--bt-gold-bright); }
+.beauty-chrome .text-blue-600,
+.beauty-chrome .text-blue-700,
+.beauty-chrome .text-blue-500,
+.beauty-chrome .text-\[\#2563eb\],
+.beauty-chrome .text-\[\#1d4ed8\] { color: #8ab4ff; }
+.beauty-chrome .text-red-600,
+.beauty-chrome .text-red-700,
+.beauty-chrome .text-red-500,
+.beauty-chrome .text-\[\#dc2626\] { color: #f87171; }
+.beauty-chrome .text-green-700,
+.beauty-chrome .text-green-600,
+.beauty-chrome .text-\[\#23714a\] { color: #86d993; }
+.beauty-chrome .text-amber-600,
+.beauty-chrome .text-amber-700 { color: var(--bt-gold-bright); }
+
+/* Lines */
+.beauty-chrome .border-gray-200,
+.beauty-chrome .border-gray-300,
+.beauty-chrome .border-gray-100,
+.beauty-chrome .border-slate-200,
+.beauty-chrome .border-slate-300,
+.beauty-chrome .border-slate-100,
+.beauty-chrome .border-\[\#e8e5df\],
+.beauty-chrome .border-\[\#d8dce2\],
+.beauty-chrome .border-black\/10,
+.beauty-chrome .border-black\/15,
+.beauty-chrome .border-border { border-color: var(--bt-line); }
+.beauty-chrome .border-\[\#3e8914\],
+.beauty-chrome .border-\[\#293681\],
+.beauty-chrome .border-\[\#134698\],
+.beauty-chrome .border-\[\#233D4D\],
+.beauty-chrome .border-\[\#3e8914\]\/40 { border-color: var(--bt-gold); }
+.beauty-chrome .divide-gray-100 > :not(:last-child),
+.beauty-chrome .divide-gray-200 > :not(:last-child) { border-color: var(--bt-line); }
+
+/* Accents: green and maroon buttons become gold, navy headers become black with gold text */
+.beauty-chrome .bg-\[\#3e8914\],
+.beauty-chrome .bg-\[\#347311\],
+.beauty-chrome .bg-\[\#4B1426\],
+.beauty-chrome .bg-\[\#3a0f1d\] { background-image: linear-gradient(135deg, var(--bt-gold-bright), #c9973a); background-color: var(--bt-gold); color: #17130d; }
+.beauty-chrome .bg-\[\#3e8914\] .text-white,
+.beauty-chrome .bg-\[\#3e8914\].text-white,
+.beauty-chrome .bg-\[\#3e8914\] svg,
+.beauty-chrome .bg-\[\#347311\] .text-white,
+.beauty-chrome .bg-\[\#347311\].text-white,
+.beauty-chrome .bg-\[\#347311\] svg,
+.beauty-chrome .bg-\[\#4B1426\] .text-white,
+.beauty-chrome .bg-\[\#4B1426\].text-white,
+.beauty-chrome .bg-\[\#4B1426\] svg,
+.beauty-chrome .bg-\[\#3a0f1d\] .text-white,
+.beauty-chrome .bg-\[\#3a0f1d\].text-white,
+.beauty-chrome .bg-\[\#3a0f1d\] svg { color: #17130d; }
+.beauty-chrome .hover\:bg-\[\#347311\]:hover,
+.beauty-chrome .hover\:bg-\[\#3a0f1d\]:hover { background-image: linear-gradient(135deg, #f0c865, var(--bt-gold)); color: #17130d; }
+.beauty-chrome .bg-\[\#233D4D\] { background-color: #1b160e; background-image: linear-gradient(180deg, #221b10, #17130c); }
+.beauty-chrome .bg-\[\#233D4D\] .text-white,
+.beauty-chrome .bg-\[\#233D4D\].text-white { color: var(--bt-gold-bright); }
+.beauty-chrome .bg-\[\#233D4D\] .text-slate-200 { color: var(--bt-muted); }
+.beauty-chrome .bg-\[\#3e8914\]\/10,
+.beauty-chrome .bg-\[\#3e8914\]\/5,
+.beauty-chrome .bg-\[\#e8f5e9\],
+.beauty-chrome .bg-amber-50,
+.beauty-chrome .bg-\[\#EFF6FF\] { background-color: rgba(212, 169, 74, 0.12); }
+.beauty-chrome .border-\[\#a5d6a7\] { border-color: rgba(134, 217, 147, 0.4); }
+.beauty-chrome .bg-red-50,
+.beauty-chrome .bg-\[\#fee2e2\],
+.beauty-chrome .bg-red-100 { background-color: rgba(248, 113, 113, 0.13); }
+.beauty-chrome .border-red-200,
+.beauty-chrome .border-\[\#fca5a5\] { border-color: rgba(248, 113, 113, 0.4); }
+.beauty-chrome .bg-blue-50 { background-color: rgba(138, 180, 255, 0.12); }
+.beauty-chrome .border-blue-100 { border-color: rgba(138, 180, 255, 0.3); }
+
+
+/* Form controls */
+.beauty-chrome input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.beauty-chrome select,
+.beauty-chrome textarea {
+  background-color: #100d08;
+  color: var(--bt-text);
+  border-color: var(--bt-line);
+}
+.beauty-chrome input::placeholder,
+.beauty-chrome textarea::placeholder { color: #7d7260; }
+.beauty-chrome input:focus,
+.beauty-chrome select:focus,
+.beauty-chrome textarea:focus { border-color: var(--bt-gold); }
+.beauty-chrome option,
+.beauty-chrome optgroup { background-color: #16120c; color: var(--bt-text); }
+.beauty-chrome input[type="file"] { color: var(--bt-muted); }
+
+/* Scrollbars and text selection in gold */
+.beauty-chrome .thin-scrollbar { scrollbar-color: var(--bt-gold) transparent; }
+.beauty-chrome ::-webkit-scrollbar-thumb { background: #4a3d22; }
+.beauty-chrome ::selection { background: rgba(212, 169, 74, 0.35); color: #fff; }
 
 /* Slim green scrollbar for tables / tab strips that scroll sideways. */
 @utility thin-scrollbar {

@@ -6,16 +6,20 @@ interface ChoiceTileProps {
   onClick: () => void;
   // "check" shows a corner tick (multi / single pick); "radio" a dot on the left.
   variant?: 'check' | 'radio';
+  // Smaller text kept on one line — for long names in a 4-per-row grid.
+  compact?: boolean;
   children: ReactNode;
 }
 
-export function ChoiceTile({ selected, onClick, variant = 'check', children }: ChoiceTileProps) {
+export function ChoiceTile({ selected, onClick, variant = 'check', compact = false, children }: ChoiceTileProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`relative flex cursor-pointer select-none items-center gap-1.5 border-2 px-2 py-2 text-[11px] font-bold transition-colors ${
+      className={`relative flex cursor-pointer select-none items-center border-2 py-2 font-bold transition-colors ${
+        compact ? 'gap-1 whitespace-nowrap px-1.5 text-[10px] tracking-tight' : 'gap-1.5 px-2 text-[11px]'
+      } ${
         variant === 'radio' ? 'justify-start' : 'justify-center text-center'
       } ${selected ? 'border-[#3e8914] bg-[#3e8914]/10 text-[#3e8914]' : 'border-gray-300 text-gray-700 hover:border-gray-400'}`}
     >

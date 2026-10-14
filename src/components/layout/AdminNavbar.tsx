@@ -62,42 +62,42 @@ export function AdminNavbar() {
     : 'Admin';
 
   const iconBtnClass = isBeautyMode
-    ? 'p-2 rounded-lg hover:bg-pink-50 transition-all duration-200 hover:scale-105'
+    ? 'p-2 rounded-lg hover:bg-[#d4a94a]/10 transition-all duration-200 hover:scale-105'
     : 'p-2 rounded-lg hover:bg-[#3e8914]/10 transition-all duration-200 hover:scale-105';
-  const iconColorClass = isBeautyMode ? 'text-pink-500' : 'text-black';
+  const iconColorClass = isBeautyMode ? 'text-[#d4a94a]' : 'text-black';
   const bellBadgeCount = unreadCount && unreadCount > 0 ? unreadCount : 3;
 
   return (
     <header
       className={`relative z-30 flex h-[62px] shrink-0 items-center gap-4 px-4 sm:px-6 border-b transition-colors ${
         isBeautyMode
-          ? 'bg-white border-pink-200 text-pink-950'
+          ? 'beauty-chrome !bg-[#16120c] border-[#3a3020] text-[#f3ead8]'
           : 'bg-white/90 backdrop-blur-xl border-slate-200/80 text-slate-800 shadow-xs'
       }`}
     >
       {/* Mobile only — on desktop the sidebar has its own collapse button by the logo */}
-      <SidebarTrigger className={`md:hidden ${isBeautyMode ? 'text-pink-950 hover:bg-pink-50' : 'text-slate-600 hover:bg-slate-900/5'}`} />
+      <SidebarTrigger className={`md:hidden ${isBeautyMode ? 'text-[#f3ead8] hover:bg-[#d4a94a]/10' : 'text-slate-600 hover:bg-slate-900/5'}`} />
 
       {/* Greeting card — time-of-day + the logged-in user's real name/role from useMe() */}
       <div
         className={`hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-colors ${
-          isBeautyMode ? 'bg-pink-50/60 border-pink-200' : 'bg-slate-50/70 border-slate-200/70'
+          isBeautyMode ? 'bg-[#d4a94a]/[0.07] border-[#3a3020]' : 'bg-slate-50/70 border-slate-200/70'
         }`}
       >
-        <div className={`flex h-7 w-7 items-center justify-center rounded-full border shadow-xs ${isBeautyMode ? 'bg-white border-pink-100' : 'bg-white border-slate-100'}`}>
+        <div className={`flex h-7 w-7 items-center justify-center rounded-full border shadow-xs ${isBeautyMode ? 'bg-white border-[#3a3020]' : 'bg-white border-slate-100'}`}>
           {greeting.icon}
         </div>
         <div className="flex flex-col leading-tight">
           <div className="flex items-center gap-1">
             <span className="text-[11px] font-medium text-slate-500">{greeting.text},</span>
-            <span className={`text-[11px] font-bold ${isBeautyMode ? 'text-pink-950' : 'text-[#3e8914]'}`}>{displayName}</span>
+            <span className={`text-[11px] font-bold ${isBeautyMode ? 'text-[#f3ead8]' : 'text-[#3e8914]'}`}>{displayName}</span>
           </div>
           <div className="mt-0.5 flex items-center gap-1.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
             </span>
-            <span className={`text-[9px] font-bold uppercase tracking-widest ${isBeautyMode ? 'text-pink-500' : 'text-[#4B1426]'}`}>
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${isBeautyMode ? 'text-[#d4a94a]' : 'text-[#4B1426]'}`}>
               {displayRole}
             </span>
           </div>
@@ -107,7 +107,7 @@ export function AdminNavbar() {
       <button
         onClick={toggleBeautyMode}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-          isBeautyMode ? 'bg-pink-500 text-white hover:bg-pink-600' : 'bg-[#EFF6FF] text-[#0F2854] hover:bg-[#DBEAFE]'
+          isBeautyMode ? 'bg-gradient-to-r from-[#e6b84f] to-[#c9973a] !text-[#17130d] hover:from-[#f0c865] hover:to-[#d4a94a] shadow-[0_6px_18px_-8px_rgba(212,169,74,0.9)]' : 'bg-[#EFF6FF] text-[#0F2854] hover:bg-[#DBEAFE]'
         }`}
       >
         <Sparkles className="w-3.5 h-3.5" />
@@ -227,7 +227,7 @@ export function AdminNavbar() {
             onClick={() => setMenuOpen((v) => !v)}
             className={`relative flex items-center gap-2 p-1 sm:pr-3 rounded-full transition-all duration-200 ${
               isBeautyMode
-                ? 'bg-white border-2 border-pink-200 hover:bg-pink-50'
+                ? 'bg-white border-2 border-[#3a3020] hover:bg-[#d4a94a]/10'
                 : 'bg-white border-2 border-slate-300 shadow-xs hover:bg-slate-50'
             }`}
           >
@@ -235,11 +235,11 @@ export function AdminNavbar() {
             <div className="relative flex-shrink-0">
               <div
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 flex-shrink-0 flex items-center justify-center shadow-xs bg-white ${
-                  isBeautyMode ? 'border-pink-200' : 'border-slate-200'
+                  isBeautyMode ? 'border-[#3a3020]' : 'border-slate-200'
                 }`}
               >
                 {isBeautyMode ? (
-                  <UserCircle className="w-6 h-6 text-pink-400" />
+                  <UserCircle className="w-6 h-6 text-[#d4a94a]" />
                 ) : (
                   <DotLottieReact
                     src="https://lottie.host/b43fbb7e-5f4c-420a-b516-1e9cd26810ec/gf22SDhjCv.lottie"
@@ -257,8 +257,8 @@ export function AdminNavbar() {
 
             {/* Name / role */}
             <div className="hidden sm:flex flex-col text-left leading-none ml-1">
-              <span className={`text-[12px] font-bold ${isBeautyMode ? 'text-pink-950' : 'text-slate-800'}`}>{displayName}</span>
-              <span className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 ${isBeautyMode ? 'text-pink-500' : 'text-[#4B1426]'}`}>
+              <span className={`text-[12px] font-bold ${isBeautyMode ? 'text-[#f3ead8]' : 'text-slate-800'}`}>{displayName}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 ${isBeautyMode ? 'text-[#d4a94a]' : 'text-[#4B1426]'}`}>
                 {displayRole}
               </span>
             </div>
