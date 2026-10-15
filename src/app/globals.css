@@ -521,6 +521,9 @@
 .beauty .border-blue-100 { border-color: rgba(138, 180, 255, 0.3); }
 
 
+/* Dashboard stat cards: white → tint gradient becomes black → a hint of the tint */
+.beauty .stat-card { background-image: linear-gradient(135deg, var(--bt-surface) 55%, color-mix(in srgb, var(--stat-tint, #d4a94a) 24%, var(--bt-surface)) 100%) !important; }
+
 /* Form controls */
 .beauty input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 .beauty select,

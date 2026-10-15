@@ -9,6 +9,7 @@ import { clearSession, useMe } from '@/lib/hooks/useAuth';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { useNotifications, useUnreadCount, useMarkNotificationRead } from '@/lib/hooks/useNotifications';
 import { ServerExpiryChip } from '@/components/server-assets/ServerExpiryChip';
+import { CustomerSearch } from '@/components/customer-profiles/CustomerSearch';
 
 function timeAgo(iso: string): string {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -114,7 +115,12 @@ export function AdminNavbar() {
         Beauty Mode {isBeautyMode ? 'ON' : 'OFF'}
       </button>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-3 relative">
+      {/* Customer search — mobile, name, email, CityCalls ID, Reg No */}
+      <div className="flex min-w-0 flex-1 justify-end md:justify-center">
+        <CustomerSearch />
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3 relative">
         {/* Help & Support */}
         <div className="relative">
           <button

@@ -64,16 +64,16 @@ export function RegistrationFilterControls({ filters, onChange, services }: {
   );
 }
 
-// The dark-green bar on top of the Registration List table.
+// The dark bar on top of the Registration List table (same colour as its header row).
 export function RegistrationToolbar({
   title, filters, onChange, shown, total, selectedCount, exporting, onExport, onBulkDelete,
 }: RegistrationToolbarProps) {
   return (
-    <div className="border-b border-gray-200 bg-white px-3 py-1.5">
+    <div className="border-b border-[#1b3140] bg-[#233D4D] px-3 py-1.5">
       <div className="flex flex-col items-center justify-between gap-2 xl:flex-row">
         <div className="self-start xl:self-auto">
-          <h2 className="text-[13px] font-semibold uppercase leading-tight text-[#233D4D]">{title}</h2>
-          <p className="text-[10.5px] text-black">Showing {shown} of {total} registrations</p>
+          <h2 className="text-[13px] font-semibold uppercase leading-tight text-white">{title}</h2>
+          <p className="text-[10.5px] text-slate-200">Showing {shown} of {total} registrations</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -84,7 +84,7 @@ export function RegistrationToolbar({
               placeholder="Search name, phone, reg no..."
               value={filters.search}
               onChange={(e) => onChange({ search: e.target.value })}
-              className="h-7 w-full border border-gray-300 bg-white pl-8 pr-2 text-[11px] font-medium outline-none focus:border-[#233D4D] focus:ring-1 focus:ring-[#233D4D]/30"
+              className="h-7 w-full border border-gray-300 bg-white pl-8 pr-2 text-[11px] font-medium outline-none focus:border-[#88be1e] focus:ring-1 focus:ring-[#88be1e]/40"
             />
           </div>
 
@@ -92,7 +92,7 @@ export function RegistrationToolbar({
             type="button"
             onClick={onExport}
             disabled={exporting || total === 0}
-            className="flex h-7 items-center gap-1.5 bg-[#4B1426] px-3 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-[#3a0f1d] disabled:opacity-60"
+            className="flex h-7 items-center gap-1.5 bg-[#3e8914] px-3 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-[#347311] disabled:opacity-60"
             title="Export to Excel (CSV)"
           >
             <Download className="h-3.5 w-3.5" />

@@ -5,8 +5,9 @@ import { Link as LinkIcon, Palette } from 'lucide-react';
 
 // Rich text box for blog content — same toolbar as the Design House admin's
 // editor (bold / italic / underline, alignment, lists, headings, link, text
-// colour), in CityCalls green. `code` mode is a plain monospace textarea for
-// pasting meta tags or JSON-LD.
+// colour), in CityCalls green. Pasted text with "[H2]" / "## " / "• " / "1. "
+// lines comes in as headings and lists. `code` mode is a plain monospace
+// textarea for pasting meta tags or JSON-LD.
 
 interface RichTextEditorProps {
   value: string;
@@ -45,6 +46,44 @@ function cleanPastedHtml(html: string) {
     .replace(/(&nbsp;){2,}/gi, ' ')
     .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>')
     .replace(/\s{2,}/g, ' ');
+}
+
+const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Pasted plain text with simple markers becomes formatted: "[H2] Title" or
+// "## Title" → heading, "• item" / "- item" → bullet list, "1. item" →
+// numbered list, blank lines split paragraphs.
+const MARKER_LINE = /^\s*(\[h[1-6]\]|#{1,6}\s|[•\-*]\s|\d+[.)]\s)/im;
+
+function plainTextToHtml(text: string) {
+  const html: string[] = [];
+  let list: { tag: 'ul' | 'ol'; items: string[] } | null = null;
+  const closeList = () => {
+    if (list) html.push(`<${list.tag}>${list.items.map((item) => `<li>${item}</li>`).join('')}</${list.tag}>`);
+    list = null;
+  };
+  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    const heading = line.match(/^\[h([1-6])\]\s*(.*)$/i) ?? line.match(/^(#{1,6})\s+(.*)$/);
+    const bullet = line.match(/^[•\-*]\s+(.*)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
+    if (heading) {
+      closeList();
+      const level = /^\d$/.test(heading[1]) ? Number(heading[1]) : heading[1].length;
+      html.push(`<h${level}>${escapeHtml(heading[2])}</h${level}>`);
+    } else if (bullet || numbered) {
+      const tag = bullet ? 'ul' : 'ol';
+      if (list && list.tag !== tag) closeList();
+      list ??= { tag, items: [] };
+      list.items.push(escapeHtml((bullet ?? numbered)![1]));
+    } else {
+      closeList();
+      html.push(`<p>${escapeHtml(line)}</p>`);
+    }
+  }
+  closeList();
+  return html.join('');
 }
 
 export function RichTextEditor({ value, onChange, placeholder, minHeight = '300px', code = false }: RichTextEditorProps) {
@@ -106,7 +145,8 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = '300p
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
-    if (html) document.execCommand('insertHTML', false, cleanPastedHtml(html));
+    if (text && MARKER_LINE.test(text)) document.execCommand('insertHTML', false, plainTextToHtml(text));
+    else if (html) document.execCommand('insertHTML', false, cleanPastedHtml(html));
     else document.execCommand('insertText', false, text);
     emit();
   };

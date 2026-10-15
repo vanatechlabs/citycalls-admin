@@ -47,7 +47,8 @@ function errorMessage(error: unknown) {
 }
 
 // Keyed by the loaded enquiry's id so add ↔ edit remount with fresh state.
-function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
+// `prefill`: name / mobile carried over from the top-bar customer search.
+function EnquiryForm({ existing, prefill }: { existing?: CallEnquiry; prefill?: { name: string; phone: string } }) {
   const router = useRouter();
   const isEditMode = !!existing;
   const stored = existing ? storedServicesOf(existing) : [];
@@ -60,7 +61,7 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
         otherService: stored.filter((s) => !s.serviceId).map((s) => s.name).join(', '),
         source: existing.source, sourceDetail: existing.sourceDetail ?? '', remarks: existing.remarks ?? '',
       }
-    : emptyForm;
+    : { ...emptyForm, ...prefill };
 
   const [form, setForm] = useState<FormState>(initialForm);
   const [serviceSearch, setServiceSearch] = useState('');
@@ -309,13 +310,17 @@ function EnquiryForm({ existing }: { existing?: CallEnquiry }) {
 }
 
 function AddCallEnquiryInner() {
-  const editId = useSearchParams().get('editId');
+  const params = useSearchParams();
+  const editId = params.get('editId');
+  // From the top-bar search ("no customer found"): ?phone=9876543210 / ?name=Rahul.
+  const phone = (params.get('phone') ?? '').replace(/\D/g, '').slice(-10);
+  const prefill = { name: (params.get('name') ?? '').slice(0, 120), phone: /^[6-9]\d{9}$/.test(phone) ? phone : '' };
   const { data: existing, isLoading, isError } = useCallEnquiry(editId);
 
   let body;
   if (editId && isLoading) body = <p className="py-16 text-center text-sm text-[#6c7587]">Loading enquiry...</p>;
   else if (editId && (isError || !existing)) body = <p className="py-16 text-center text-sm font-bold text-red-600">Enquiry not found.</p>;
-  else body = <EnquiryForm key={existing?._id ?? 'new'} existing={existing} />;
+  else body = <EnquiryForm key={existing?._id ?? `new-${prefill.phone}-${prefill.name}`} existing={existing} prefill={prefill} />;
 
   return (
     <PageShell

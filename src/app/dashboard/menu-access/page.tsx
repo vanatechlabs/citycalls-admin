@@ -23,7 +23,7 @@ type Mode = 'ALL' | 'SELECTED';
 
 // Menu picker for one user; keyed by user id + their saved list, so picking
 // another user (or saving) starts from that user's saved state.
-function MenuPicker({ user, sections }: { user: User; sections: { group: string; items: { key: string; title: string; locked: boolean }[] }[] }) {
+function MenuPicker({ user, sections }: { user: User; sections: { group: string; items: { key: string; title: string; label?: string; locked: boolean }[] }[] }) {
   const saved = user.menuAccess;
   const [mode, setMode] = useState<Mode>(Array.isArray(saved) ? 'SELECTED' : 'ALL');
   const [selected, setSelected] = useState<Set<string>>(new Set(saved ?? sections.flatMap((s) => s.items.map((i) => i.key))));
@@ -132,7 +132,7 @@ function MenuPicker({ user, sections }: { user: User; sections: { group: string;
                               onChange={() => toggle(item.key)}
                               className="h-4 w-4 accent-[#3e8914]"
                             />
-                            {item.title}
+                            {item.label ?? item.title}
                             {item.locked && <span className="text-[10px] font-bold uppercase text-gray-400">(always shown)</span>}
                           </label>
                         </li>
@@ -175,7 +175,7 @@ export default function MenuAccessPage() {
         items: [...group.items, ...(group.group === 'Service Call Section' ? registrationCategoryItems : [])].flatMap((item) =>
           item.childAccess
             ? (item.children ?? []).map((child) => ({ key: menuKey(group.group, child.title), title: child.title, locked: false }))
-            : [{ key: menuKey(group.group, item.title), title: item.title, locked: !!item.alwaysVisible }]
+            : [{ key: menuKey(group.group, item.title), title: item.title, label: item.label, locked: !!item.alwaysVisible }]
         ),
       })),
     [registrationCategoryItems]

@@ -55,6 +55,12 @@ function Guard({ children }: { children: ReactNode }) {
     }
     // Registration detail / edit pages belong to the whole section.
     routes.push(toRoute('/dashboard/registrations', ['Service Call Section::*']));
+    // A customer's profile also opens from the top-bar search, so anyone
+    // working calls or enquiries may see it (All Customers itself stays
+    // with its own menu).
+    if (pathname.startsWith('/dashboard/customer-profiles/')) {
+      routes.push(toRoute(pathname, ['Customer Section::*', 'Service Call Section::*', 'Call Enquiry Section::*']));
+    }
 
     // Most specific match: longest path, then the one matching more query params
     // (e.g. Beauty Services = /catalog/services?vertical=BEAUTY vs. Services).

@@ -61,15 +61,35 @@ const newEntry = (serviceId: string): ServiceEntry => ({
 
 const isIssueKey = (key: keyof RegistrationFormState): key is IssueKey => (ISSUE_KEYS as readonly string[]).includes(key);
 
+// A known customer's details (Customer Section → profile → New Service Call).
+export interface RegistrationCustomerPrefill {
+  name: string;
+  phone: string;
+  email?: string;
+  altPhone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
 // Create form when `registration` is absent, edit form when it's given.
 // `enquiry`: a call enquiry being moved to a Service Call — its name, mobile,
 // service and source start filled in, and it's marked Converted once saved.
-export function RegistrationForm({ registration, enquiry }: { registration?: Registration; enquiry?: CallEnquiry }) {
+// `customer`: a returning customer — their contact details and last address start filled in.
+export function RegistrationForm({ registration, enquiry, customer }: { registration?: Registration; enquiry?: CallEnquiry; customer?: RegistrationCustomerPrefill }) {
   const router = useRouter();
   const mode = registration ? 'edit' : 'create';
 
   const initialState = () => {
     if (registration) return formStateFromRegistration(registration);
+    if (customer) {
+      return {
+        ...emptyFormState(),
+        fullName: customer.name, phone: customer.phone, email: customer.email ?? '', altPhone: customer.altPhone ?? '',
+        address: customer.address ?? '', city: customer.city ?? '', state: customer.state ?? '', pincode: customer.pincode ?? '',
+      };
+    }
     if (!enquiry) return emptyFormState();
     return {
       ...emptyFormState(),

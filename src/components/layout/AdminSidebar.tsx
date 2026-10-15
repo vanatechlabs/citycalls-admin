@@ -34,6 +34,9 @@ import {
   Upload,
   Ticket,
   MapPin,
+  MapPinPlus,
+  MapPinned,
+  UsersRound,
   Clock,
   Briefcase,
   CalendarDays,
@@ -86,6 +89,7 @@ import {
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { useEnquiryPendingCounts, type EnquiryType } from '@/lib/hooks/useEnquiries';
 import { ALL_CATEGORIES, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
+import { displayCategoryName } from '@/lib/registrations/format';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -94,7 +98,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 // calls) — not a frontend-invented naming scheme. Cross-check against
 // docs/openapi/citycalls.yaml before adding a new item.
 export interface NavItem {
+  // Also the item's Menu Access key ("<Section>::<title>"), so it never changes.
   title: string;
+  // Shown instead of the title, when it should read differently (e.g. a
+  // category typed in capitals in Navbar List).
+  label?: string;
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
   module?: string;
@@ -172,6 +180,8 @@ export const navItems: { group: string; items: NavItem[] }[] = [
     items: [
       { title: 'Add Blog', url: '/dashboard/blogs/add', icon: FilePenLine, module: 'marketing' },
       { title: 'Blog List', url: '/dashboard/blogs/list', icon: Newspaper, module: 'marketing' },
+      { title: 'Add Location Page', url: '/dashboard/location-pages/add', icon: MapPinPlus, module: 'marketing' },
+      { title: 'Location Page List', url: '/dashboard/location-pages/list', icon: MapPinned, module: 'marketing' },
     ],
   },
   {
@@ -222,6 +232,14 @@ export const navItems: { group: string; items: NavItem[] }[] = [
     items: [
       { title: 'Add Call Enquiry', url: '/dashboard/call-enquiries/add', icon: PhoneIncoming, module: 'customers', action: 'create' },
       { title: 'Call Enquiry List', url: '/dashboard/call-enquiries/list', icon: ListChecks, module: 'customers' },
+    ],
+  },
+  {
+    // One profile per mobile number across Service Calls and enquiries
+    // (also opened from the top-bar customer search).
+    group: 'Customer Section',
+    items: [
+      { title: 'All Customers', url: '/dashboard/customer-profiles', icon: UsersRound, module: 'customers' },
     ],
   },
   {
@@ -391,6 +409,9 @@ export function useRegistrationCategoryItems(): NavItem[] {
   ];
   return categories.map((category) => ({
     title: category.name,
+    // Live menus were typed in capitals — shown as "Home Appliance"; the
+    // title (Menu Access key) stays as it is.
+    label: displayCategoryName(category.name),
     icon: category.icon,
     module: 'customers',
     badge: category.badge,
@@ -564,7 +585,7 @@ function AdminSidebarContent() {
                                 onClick={() => collapsed && setSidebarOpen(true)}
                                 render={
                                   <SidebarMenuButton
-                                    tooltip={item.title}
+                                    tooltip={item.label ?? item.title}
                                     className={
                                       isBeautyMode
                                         ? 'text-[12px] font-medium text-[#f3ead8] border border-transparent hover:bg-[#d4a94a]/10 hover:text-[#f3ead8] hover:border-[#d4a94a]/50 transition-colors'
@@ -575,7 +596,7 @@ function AdminSidebarContent() {
                                 }
                               >
                                 <item.icon className={isBeautyMode ? 'text-[#d4a94a]' : 'text-[#3e8914]'} />
-                                <span>{item.title}</span>
+                                <span>{item.label ?? item.title}</span>
                                 <CountBadge count={item.badge} className="ml-auto" />
                                 <ChevronDown className={`${item.badge ? 'ml-1' : 'ml-auto'} h-3.5 w-3.5 shrink-0 transition-transform ${isSubmenuOpen(item) ? 'rotate-180' : ''}`} />
                               </CollapsibleTrigger>
@@ -614,7 +635,7 @@ function AdminSidebarContent() {
                         <PermissionGate key={item.title} module={item.module} action={item.action} anyOf={item.anyOf} alwaysVisible={item.alwaysVisible}>
                           <SidebarMenuItem>
                             <SidebarMenuButton
-                              tooltip={item.title}
+                              tooltip={item.label ?? item.title}
                               render={<Link href={item.url ?? '#'} />}
                               isActive={currentUrl === item.url}
                               className={
@@ -625,7 +646,7 @@ function AdminSidebarContent() {
                               style={{ color: isBeautyMode ? (currentUrl === item.url ? '#17130d' : '#f3ead8') : '#1f2937' }}
                             >
                               <item.icon className={isBeautyMode ? 'text-[#d4a94a]' : 'text-[#3e8914]'} />
-                              <span>{item.title}</span>
+                              <span>{item.label ?? item.title}</span>
                               <CountBadge count={item.badge} className="ml-auto" />
                             </SidebarMenuButton>
                           </SidebarMenuItem>
