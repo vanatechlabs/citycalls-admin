@@ -50,11 +50,11 @@ export function parseClockTime(value: string) {
   return `${String(hours).padStart(2, '0')}:${match[2]}`;
 }
 
-// "HOME APPLIANCE" (a Navbar List menu typed in capitals) → "Home Appliance".
-// Names already in mixed case are shown exactly as typed.
+// "HOME APPLIANCE" / "home appliance" (a Navbar List menu typed all in
+// capitals or all in small letters) → "Home Appliance". Names typed in
+// mixed case are shown exactly as typed.
 export function displayCategoryName(name?: string) {
   if (!name) return '';
-  return name === name.toUpperCase() && /[A-Z]/.test(name)
-    ? name.toLowerCase().replace(/[a-z]/g, (c) => c.toUpperCase())
-    : name;
+  const oneCase = name === name.toUpperCase() || name === name.toLowerCase();
+  return oneCase ? name.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : name;
 }
