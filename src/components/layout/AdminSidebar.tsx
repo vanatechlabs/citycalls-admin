@@ -216,6 +216,8 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       { title: 'Page List', url: '/dashboard/pages/list', icon: FileStack, module: 'marketing' },
       { title: 'Launch Spotlight', url: '/dashboard/pages/launch-spotlight', icon: GalleryHorizontal, module: 'marketing' },
       { title: 'Testimonials', url: '/dashboard/pages/testimonials', icon: MessageSquareQuote, module: 'marketing' },
+      // A card for every service (image, description, price); shown on the website later.
+      { title: 'All Services', url: '/dashboard/pages/all-services', icon: LayoutGrid, module: 'marketing' },
     ],
   },
   {
