@@ -71,6 +71,8 @@ export function useHelpNowHomeSection<K extends HelpNowHomeSection>(section: K) 
       const res = await apiClient.get<ApiSuccessEnvelope<HelpNowHomeSaved<K>>>(path(section), { skipGlobalToast: true });
       return res.data.data;
     },
+    // The form is open with unsaved edits; don't reload it behind the user's back.
+    refetchOnWindowFocus: false,
   });
 }
 
