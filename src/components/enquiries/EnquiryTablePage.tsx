@@ -85,6 +85,13 @@ const CONFIG: Record<EnquiryType, { title: string; subtitle: string; noun: strin
     nounPlural: 'messages',
     searchPlaceholder: 'Search by name, email, phone number, reference no., subject or message...',
   },
+  HELP_NOW_QUICK_BOOKING: {
+    title: 'Help Now Booking',
+    subtitle: 'Requests from the Help Now website’s “Book Now” (Instant Booking) form — call them back to book the maid.',
+    noun: 'booking',
+    nounPlural: 'bookings',
+    searchPlaceholder: 'Search by name, phone number, reference no., service or message...',
+  },
 };
 
 // Header filters — same look as the Registration list's (All Time / All Sources / All Services).
@@ -131,7 +138,8 @@ const withCountryCode = (phone: string) => (digits(phone).length === 10 ? `91${d
 
 export function EnquiryTablePage({ type }: { type: EnquiryType }) {
   const config = CONFIG[type];
-  const isQuick = type === 'QUICK_BOOKING';
+  // Both quick-booking lists (City Calls and Help Now) show services, not subjects.
+  const isQuick = type !== 'CONTACT';
   const canEdit = usePermission('leads', 'edit');
   const { data: enquiries = [], isLoading, error } = useEnquiries(type);
   const updateStatus = useUpdateEnquiryStatus(type);
@@ -273,7 +281,8 @@ export function EnquiryTablePage({ type }: { type: EnquiryType }) {
         ? [i + 1, e.referenceNo, e.name, `+91 ${e.phone}`, e.services.join(', '), e.message ?? '', e.page ? pageLabel(e.page) : '', STATUS_LABEL[e.status], formatDateTime(e.createdAt)]
         : [i + 1, e.referenceNo, e.name, e.email ?? '', `+91 ${e.phone}`, e.subject ?? '', e.message ?? '', STATUS_LABEL[e.status], formatDateTime(e.createdAt)]
     );
-    downloadCsv(`${isQuick ? 'quick-bookings' : 'contact-enquiries'}-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    const fileName = type === 'HELP_NOW_QUICK_BOOKING' ? 'helpnow-bookings' : isQuick ? 'quick-bookings' : 'contact-enquiries';
+    downloadCsv(`${fileName}-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
     showSuccess(`Exported ${rows.length} ${rows.length === 1 ? config.noun : config.nounPlural}`);
   };
 

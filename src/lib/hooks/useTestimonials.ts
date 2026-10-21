@@ -8,6 +8,11 @@ const BASE_PATH = '/websites/city-calls/home-page/testimonials';
 export const TESTIMONIAL_STATUSES = ['PUBLISHED', 'PENDING', 'HIDDEN'] as const;
 export type TestimonialStatus = (typeof TESTIMONIAL_STATUSES)[number];
 
+// Which website a review shows on. Older reviews may have none (= City Calls).
+export const TESTIMONIAL_WEBSITES = ['CITY_CALLS', 'HELP_NOW'] as const;
+export type TestimonialWebsite = (typeof TESTIMONIAL_WEBSITES)[number];
+export const WEBSITE_LABEL: Record<TestimonialWebsite, string> = { CITY_CALLS: 'City Calls', HELP_NOW: 'Help Now' };
+
 export interface TestimonialInput {
   name: string;
   role: string;
@@ -18,9 +23,11 @@ export interface TestimonialInput {
   color: string;
   sortOrder: number;
   status: TestimonialStatus;
+  website: TestimonialWebsite;
 }
 
-export interface Testimonial extends TestimonialInput {
+export interface Testimonial extends Omit<TestimonialInput, 'website'> {
+  website?: TestimonialWebsite;
   _id: string;
   createdBy?: { name: string };
   updatedBy?: { name: string };

@@ -165,6 +165,19 @@ export const navItems: { group: string; items: NavItem[] }[] = [
           { title: 'Our Journey', url: '/dashboard/website/about-page/journey', module: 'marketing' },
         ],
       },
+      {
+        title: 'Help Now',
+        icon: HelpCircle,
+        module: 'marketing',
+        childAccess: true,
+        children: [
+          { title: 'Hero Slides', url: '/dashboard/website/help-now/hero', module: 'marketing' },
+          { title: 'Marquee Strip', url: '/dashboard/website/help-now/marquee', module: 'marketing' },
+          { title: 'About HelpNow', url: '/dashboard/website/help-now/about', module: 'marketing' },
+          { title: 'Service Cards', url: '/dashboard/website/help-now/services', module: 'marketing' },
+          { title: 'Help Now FAQ', url: '/dashboard/website/help-now/faq', module: 'marketing' },
+        ],
+      },
     ],
   },
   {
@@ -250,6 +263,7 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       // Red badges (Pending count) added at render time from useEnquiryPendingCounts().
       { title: 'Quick Booking', url: '/dashboard/enquiries/quick-booking', icon: Zap, module: 'leads' },
       { title: 'Contact Enquiry', url: '/dashboard/enquiries/contact', icon: Mail, module: 'leads' },
+      { title: 'Help Now Booking', url: '/dashboard/enquiries/helpnow-booking', icon: HelpCircle, module: 'leads' },
     ],
   },
   {
@@ -427,7 +441,11 @@ export function useRegistrationCategoryItems(): NavItem[] {
 }
 
 // Enquiry Section menu → which pending count its badge shows.
-const ENQUIRY_BADGE: Record<string, EnquiryType> = { 'Quick Booking': 'QUICK_BOOKING', 'Contact Enquiry': 'CONTACT' };
+const ENQUIRY_BADGE: Record<string, EnquiryType> = {
+  'Quick Booking': 'QUICK_BOOKING',
+  'Contact Enquiry': 'CONTACT',
+  'Help Now Booking': 'HELP_NOW_QUICK_BOOKING',
+};
 
 // Red pill with white count, e.g. unread registrations in a category.
 function CountBadge({ count, className = '' }: { count?: number; className?: string }) {

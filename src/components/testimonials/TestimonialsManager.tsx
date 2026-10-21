@@ -14,8 +14,7 @@ import { PageShell } from '@/components/registrations/shared/PageShell';
 import { usePermission } from '@/lib/hooks/useAuth';
 import {
   Testimonial, TestimonialInput, TestimonialsSectionInput, TestimonialStatus,
-  useCreateTestimonial, useDeleteTestimonial, useTestimonials, useUpdateTestimonial, useUpdateTestimonialsSection,
-} from '@/lib/hooks/useTestimonials';
+  useCreateTestimonial, useDeleteTestimonial, useTestimonials, useUpdateTestimonial, useUpdateTestimonialsSection, TestimonialWebsite, WEBSITE_LABEL } from '@/lib/hooks/useTestimonials';
 
 // Pages Section → Testimonials: reviews for the home page's "Loved by
 // thousands of happy families" carousel. Layout follows the Bharat admin's
@@ -112,7 +111,12 @@ const FILTER = 'h-[36px] rounded-[6px] border border-[#dfe4e8] bg-white px-[10px
 const LABEL = 'mb-1 block text-[11px] font-bold text-[#1e293b]';
 const INPUT = 'h-[36px] w-full rounded-[4px] border border-[#cbd5e1] px-2.5 text-[12px] font-medium text-[#1e293b] outline-none placeholder:text-slate-400 focus:border-[#3e8914]';
 
-const EMPTY_FORM: TestimonialInput = { name: '', role: '', location: '', rating: 5, message: '', color: '#3e8914', sortOrder: 0, status: 'PUBLISHED' };
+const EMPTY_FORM: TestimonialInput = { name: '', role: '', location: '', rating: 5, message: '', color: '#3e8914', sortOrder: 0, status: 'PUBLISHED', website: 'CITY_CALLS' };
+const websiteOf = (t: { website?: TestimonialWebsite }): TestimonialWebsite => t.website ?? 'CITY_CALLS';
+const WEBSITE_STYLES: Record<TestimonialWebsite, string> = {
+  CITY_CALLS: 'bg-[#eef7e6] text-[#3e8914] border border-[#cfe6bd]',
+  HELP_NOW: 'bg-[#fff4dd] text-[#b5730f] border border-[#f5d48f]',
+};
 
 type StatusFilter = 'ALL' | TestimonialStatus;
 
@@ -129,6 +133,7 @@ export function TestimonialsManager() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [locationFilter, setLocationFilter] = useState('');
+  const [websiteFilter, setWebsiteFilter] = useState<'ALL' | TestimonialWebsite>('ALL');
   const [ratingFilter, setRatingFilter] = useState(0);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [page, setPage] = useState(1);
@@ -151,13 +156,14 @@ export function TestimonialsManager() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return testimonials.filter((t) => {
+      if (websiteFilter !== 'ALL' && websiteOf(t) !== websiteFilter) return false;
       if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
       if (locationFilter && t.location !== locationFilter) return false;
       if (ratingFilter && t.rating !== ratingFilter) return false;
       if (!q) return true;
       return [t.name, t.role, t.location, t.message].some((f) => f.toLowerCase().includes(q));
     });
-  }, [testimonials, query, statusFilter, locationFilter, ratingFilter]);
+  }, [testimonials, query, websiteFilter, statusFilter, locationFilter, ratingFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -209,7 +215,7 @@ export function TestimonialsManager() {
   };
   const openEdit = (t: Testimonial) => {
     setEditingId(t._id);
-    setForm({ name: t.name, role: t.role, location: t.location, rating: t.rating, message: t.message, color: t.color, sortOrder: t.sortOrder, status: t.status });
+    setForm({ name: t.name, role: t.role, location: t.location, rating: t.rating, message: t.message, color: t.color, sortOrder: t.sortOrder, status: t.status, website: websiteOf(t) });
     setFormOpen(true);
   };
 
@@ -361,6 +367,11 @@ export function TestimonialsManager() {
               placeholder="Search testimonials by name, role, review or location..."
               className="h-[36px] min-w-[220px] flex-1 rounded-[6px] border border-[#dfe4e8] bg-white px-[12px] text-[12px] font-semibold text-[#273655] outline-none placeholder:font-medium placeholder:text-[#8b95a7] focus:border-[#3e8914]"
             />
+            <select value={websiteFilter} onChange={(e) => applyFilters(() => setWebsiteFilter(e.target.value as 'ALL' | TestimonialWebsite))} className={FILTER}>
+              <option value="ALL">All Websites</option>
+              <option value="CITY_CALLS">City Calls</option>
+              <option value="HELP_NOW">Help Now</option>
+            </select>
             <select value={statusFilter} onChange={(e) => applyFilters(() => setStatusFilter(e.target.value as StatusFilter))} className={FILTER}>
               <option value="ALL">All Status</option>
               <option value="PUBLISHED">Published</option>
@@ -407,7 +418,7 @@ export function TestimonialsManager() {
                 <table className="w-full min-w-[860px] border-collapse text-left">
                   <thead>
                     <tr className="h-[36px] bg-[#233D4D]">
-                      {['Order', 'Testimonial Name', 'Location', 'Rating', 'Updated By', 'Status'].map((h) => (
+                      {['Order', 'Testimonial Name', 'Website', 'Location', 'Rating', 'Updated By', 'Status'].map((h) => (
                         <th key={h} className="whitespace-nowrap px-[10px] py-[6px] text-[11px] font-bold uppercase tracking-wider text-white">{h}</th>
                       ))}
                       <th className="px-[10px] py-[6px] text-right text-[11px] font-bold uppercase tracking-wider text-white">Actions</th>
@@ -415,7 +426,7 @@ export function TestimonialsManager() {
                   </thead>
                   <tbody className="divide-y divide-[#f0f0ec]">
                     {rows.length === 0 ? (
-                      <tr><td colSpan={7} className="py-12 text-center text-[12px] font-medium text-slate-500">No testimonials match your filters.</td></tr>
+                      <tr><td colSpan={8} className="py-12 text-center text-[12px] font-medium text-slate-500">No testimonials match your filters.</td></tr>
                     ) : (
                       rows.map((t) => (
                         <tr key={t._id} onClick={() => setSelectedId(t._id)} className={`cursor-pointer transition hover:bg-slate-50/80 ${selected?._id === t._id ? 'bg-[#f4faf0]' : ''}`}>
@@ -428,6 +439,9 @@ export function TestimonialsManager() {
                                 <p className="truncate text-[11px] font-semibold text-[#4B1426]">{t.role || '—'}</p>
                               </div>
                             </div>
+                          </td>
+                          <td className="whitespace-nowrap px-[10px] py-[7px]">
+                            <span className={`rounded-[4px] px-[8px] py-[2px] text-[11px] font-bold ${WEBSITE_STYLES[websiteOf(t)]}`}>{WEBSITE_LABEL[websiteOf(t)]}</span>
                           </td>
                           <td className="whitespace-nowrap px-[10px] py-[7px]">
                             {t.location ? (
@@ -626,6 +640,24 @@ export function TestimonialsManager() {
               <div>
                 <label className={LABEL} htmlFor="t-role">Service / Role</label>
                 <input id="t-role" value={form.role} onChange={(e) => setField({ role: e.target.value })} maxLength={120} placeholder="e.g. AC Service customer" className={INPUT} />
+              </div>
+            </div>
+
+            {/* Which website shows this review */}
+            <div>
+              <span className={LABEL}>Show on Website</span>
+              <div className="grid grid-cols-2 gap-2">
+                {(['CITY_CALLS', 'HELP_NOW'] as const).map((site) => (
+                  <button
+                    key={site}
+                    type="button"
+                    onClick={() => setField({ website: site })}
+                    aria-pressed={form.website === site}
+                    className={`h-[36px] rounded-[4px] text-[12px] font-bold transition ${form.website === site ? WEBSITE_STYLES[site] + ' ring-2 ring-offset-1 ring-current' : 'border border-[#d8dce2] bg-white text-[#64748b] hover:bg-slate-50'}`}
+                  >
+                    {WEBSITE_LABEL[site]}
+                  </button>
+                ))}
               </div>
             </div>
 
