@@ -7,6 +7,32 @@ const SEO_PATH = '/websites/city-calls/seo';
 // Public website origin — canonical URLs default to this + the page path.
 export const WEBSITE_ORIGIN = (process.env.NEXT_PUBLIC_WEBSITE_URL ?? 'https://citycalls.in').replace(/\/$/, '');
 
+// Help Now's pages share the SEO list but are stored under this path prefix
+// (backend help-now/seo/helpNowSeo.pages.ts): "/helpnow-site/services/dish-washing"
+// is helpnow.citycalls.in/services/dish-washing.
+export const HELP_NOW_SEO_PREFIX = '/helpnow-site';
+const HELP_NOW_ORIGIN = (process.env.NEXT_PUBLIC_HELPNOW_WEBSITE_URL ?? 'https://helpnow.citycalls.in').replace(/\/$/, '');
+
+function seoPageLocation(pagePath: string) {
+  if (pagePath === HELP_NOW_SEO_PREFIX || pagePath.startsWith(`${HELP_NOW_SEO_PREFIX}/`)) {
+    return { origin: HELP_NOW_ORIGIN, path: pagePath.slice(HELP_NOW_SEO_PREFIX.length) || '/' };
+  }
+  return { origin: WEBSITE_ORIGIN, path: pagePath };
+}
+
+// The page's full URL on whichever website it belongs to.
+export function seoPageUrl(pagePath: string) {
+  const { origin, path } = seoPageLocation(pagePath);
+  return `${origin}${path === '/' ? '' : path}`;
+}
+
+// How a page's path is shown in admin: City Calls paths as they are, Help Now
+// ones with their domain ("helpnow.citycalls.in/services/dish-washing").
+export function seoDisplayPath(pagePath: string) {
+  const { origin, path } = seoPageLocation(pagePath);
+  return origin === WEBSITE_ORIGIN ? path : `${origin.replace(/^https?:\/\//, '')}${path}`;
+}
+
 export type SeoStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface SeoActor {

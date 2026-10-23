@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Edit, Search, Trash2, XCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useDeleteSeoMeta, useSeoMetaList, SeoMeta } from '@/lib/hooks/useSeoMeta';
+import { useDeleteSeoMeta, useSeoMetaList, SeoMeta, seoDisplayPath } from '@/lib/hooks/useSeoMeta';
 
 export default function MetaListPage() {
   const router = useRouter();
@@ -107,7 +107,7 @@ export default function MetaListPage() {
                       <td className="px-[12px] py-[8px] font-bold text-[#3e8914]">{startIndex + index + 1}</td>
                       <td className="px-[12px] py-[8px]">
                         <span className="block text-[12px] font-bold text-[#4B1426]">{row.pageName}</span>
-                        <span className="block text-[10px] text-gray-400">{row.pagePath}</span>
+                        <span className="block text-[10px] text-gray-400">{seoDisplayPath(row.pagePath)}</span>
                       </td>
                       <td className="max-w-[220px] truncate px-[12px] py-[8px] text-[11px] text-[#334155]" title={row.metaTitle}>
                         {row.metaTitle || '—'}

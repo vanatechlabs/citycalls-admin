@@ -38,17 +38,25 @@ function MarqueeForm({ saved }: { saved: HelpNowHomeSaved<'marquee'> }) {
       <div className="space-y-6 lg:col-span-2">
         <FormCard icon={ListOrdered} title="Strip Items" hint={`Up to ${HELP_NOW_HOME_LIMITS.marqueeItems} short lines, each with an icon. They scroll in this order and repeat.`}>
           <div className="space-y-2">
+            {/* Icon · icon picker (fixed) · text (takes the rest) · controls. On
+                phones the text drops to its own full-width line. */}
+            <div className="hidden grid-cols-[32px_150px_minmax(0,1fr)_auto] gap-2 px-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 sm:grid">
+              <span />
+              <span>Icon</span>
+              <span>Text</span>
+              <span className="w-[92px]" />
+            </div>
             {form.items.map((item, index) => {
               const Icon = ICONS[item.icon];
               return (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-[#f5a623]/40 bg-[#f5a623]/10 text-[#b5730f]">
+                <div key={index} className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[32px_150px_minmax(0,1fr)_auto]">
+                  <span className="flex h-8 w-8 items-center justify-center border-2 border-[#f5a623]/40 bg-[#f5a623]/10 text-[#b5730f]">
                     <Icon className="h-4 w-4" />
                   </span>
                   <select
                     value={item.icon}
                     onChange={(e) => updateItem(index, { icon: e.target.value as MarqueeIcon })}
-                    className={`${FIELD_INPUT} w-36 shrink-0 cursor-pointer`}
+                    className={`${FIELD_INPUT} cursor-pointer`}
                     aria-label={`Icon for item ${index + 1}`}
                   >
                     {MARQUEE_ICONS.map((name) => <option key={name} value={name}>{name}</option>)}
@@ -57,8 +65,8 @@ function MarqueeForm({ saved }: { saved: HelpNowHomeSaved<'marquee'> }) {
                     value={item.label}
                     maxLength={60}
                     onChange={(e) => updateItem(index, { label: e.target.value })}
-                    placeholder="e.g. Book trusted maids by the hour"
-                    className={`${FIELD_INPUT} min-w-0`}
+                    placeholder="e.g. Same-day home cleaning in Delhi NCR"
+                    className={`${FIELD_INPUT} col-span-3 row-start-2 sm:col-span-1 sm:row-start-auto`}
                     aria-label={`Text for item ${index + 1}`}
                   />
                   <ItemControls

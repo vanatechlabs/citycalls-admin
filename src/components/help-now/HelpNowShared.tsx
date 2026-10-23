@@ -190,6 +190,57 @@ export function ImageField({ preview, alt, onPick, onClear, onAlt, label, altPla
   );
 }
 
+// The heading with its highlight in gold, for the live previews.
+export function Highlighted({ heading, highlight }: { heading: string; highlight: string }) {
+  const index = highlight ? heading.indexOf(highlight) : -1;
+  if (index < 0) return <>{heading}</>;
+  return <>{heading.slice(0, index)}<span className="text-[#f5a623]">{highlight}</span>{heading.slice(index + highlight.length)}</>;
+}
+
+export interface SectionHeadings {
+  eyebrow: string;
+  heading: string;
+  highlight: string;
+  description?: string;
+  status: HelpNowSectionStatus;
+}
+
+export const highlightMissing = (h: { heading: string; highlight: string }) => !!h.highlight && !h.heading.includes(h.highlight);
+
+// Subheading · status · heading + gold highlight · (optional) description —
+// the top of most Help Now home sections.
+export function HeadingFields<T extends SectionHeadings>({ value, onChange, where, placeholders }: {
+  value: T;
+  onChange: (patch: Partial<T>) => void;
+  where: string;
+  placeholders: { eyebrow: string; heading: string; highlight: string };
+}) {
+  const missing = highlightMissing(value);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Field label="Subheading">
+          <input value={value.eyebrow} maxLength={60} onChange={(e) => onChange({ eyebrow: e.target.value } as Partial<T>)} placeholder={placeholders.eyebrow} className={FIELD_INPUT} />
+        </Field>
+        <StatusField value={value.status} onChange={(status) => onChange({ status } as Partial<T>)} where={where} />
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Field label="Main Heading" required className="md:col-span-2">
+          <input value={value.heading} maxLength={120} onChange={(e) => onChange({ heading: e.target.value } as Partial<T>)} placeholder={placeholders.heading} className={FIELD_INPUT} />
+        </Field>
+        <Field label="Highlight Text" hint={missing ? <span className="text-red-500">Must be part of the heading</span> : 'Shown in gold.'}>
+          <input value={value.highlight} maxLength={80} onChange={(e) => onChange({ highlight: e.target.value } as Partial<T>)} placeholder={placeholders.highlight} className={`${FIELD_INPUT} ${missing ? 'border-red-400' : ''}`} />
+        </Field>
+      </div>
+      {value.description !== undefined && (
+        <Field label="Short Description">
+          <textarea rows={2} value={value.description} maxLength={300} onChange={(e) => onChange({ description: e.target.value } as Partial<T>)} className={`${FIELD_INPUT} resize-none`} />
+        </Field>
+      )}
+    </div>
+  );
+}
+
 export function SaveBar({ saving, onUndo, label }: { saving: boolean; onUndo: () => void; label: string }) {
   return (
     <div className="flex gap-2">

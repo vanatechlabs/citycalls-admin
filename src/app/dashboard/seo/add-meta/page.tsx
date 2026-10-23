@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 import type { ApiErrorEnvelope } from '@/lib/api/client';
 import { useUploadFile } from '@/lib/hooks/useFiles';
 import {
-  useSaveSeoMeta, useSeoMeta, useSeoPageOptions, SeoMeta, SeoStatus, WEBSITE_ORIGIN,
+  useSaveSeoMeta, useSeoMeta, useSeoPageOptions, SeoMeta, SeoStatus, WEBSITE_ORIGIN, seoDisplayPath, seoPageUrl,
 } from '@/lib/hooks/useSeoMeta';
 import { resolveMediaUrl } from '@/lib/registrations/format';
 
@@ -113,7 +113,7 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
       ...prev,
       pagePath: path,
       // Pre-fill the canonical for the chosen page if it's still empty.
-      canonicalUrl: prev.canonicalUrl || (path ? `${WEBSITE_ORIGIN}${path === '/' ? '' : path}` : ''),
+      canonicalUrl: prev.canonicalUrl || (path ? seoPageUrl(path) : ''),
     }));
   }
 
@@ -184,7 +184,7 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
             {isEditMode ? 'Edit SEO Meta' : 'Add SEO Meta'}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {isEditMode ? `Update SEO meta tags for ${existing.pageName} (${existing.pagePath})` : 'Add SEO meta tags for website pages'}
+            {isEditMode ? `Update SEO meta tags for ${existing.pageName} (${seoDisplayPath(existing.pagePath)})` : 'Add SEO meta tags for website pages'}
           </p>
         </div>
 
@@ -206,19 +206,19 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
                 className={`${FIELD_SM} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500`}
               >
                 <option value="">{pagesLoading ? 'Loading pages...' : '-- Select a Page --'}</option>
-                {isEditMode && !selectedPage && <option value={form.pagePath}>{existing.pageName} ({form.pagePath})</option>}
+                {isEditMode && !selectedPage && <option value={form.pagePath}>{existing.pageName} ({seoDisplayPath(form.pagePath)})</option>}
                 {pageGroups.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.pages.map((p) => (
                       <option key={p.path} value={p.path}>
-                        {p.name} ({p.path}){p.seoMetaId ? '  ✓ SEO added' : ''}{p.inactive ? '  — inactive in navbar' : ''}
+                        {p.name} ({seoDisplayPath(p.path)}){p.seoMetaId ? '  ✓ SEO added' : ''}{p.inactive ? '  — inactive in navbar' : ''}
                       </option>
                     ))}
                   </optgroup>
                 ))}
               </select>
               <p className="mt-1 text-[10px] text-gray-400">
-                Website pages plus every service from Navbar List (grouped by menu). Pages marked ✓ already have SEO.
+                Website pages, every service from Navbar List (grouped by menu) and the Help Now website&apos;s pages. Pages marked ✓ already have SEO.
               </p>
             </div>
 
@@ -306,7 +306,7 @@ function SeoMetaForm({ existing }: { existing?: SeoMeta }) {
                 <button
                   type="button"
                   disabled={!form.pagePath}
-                  onClick={() => update('canonicalUrl', `${WEBSITE_ORIGIN}${form.pagePath === '/' ? '' : form.pagePath}`)}
+                  onClick={() => update('canonicalUrl', seoPageUrl(form.pagePath))}
                   className="flex shrink-0 items-center gap-1.5 border-2 border-gray-300 bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:border-[#3e8914] hover:text-[#3e8914] disabled:opacity-50"
                 >
                   <Link2 className="h-3.5 w-3.5" /> Use page URL
