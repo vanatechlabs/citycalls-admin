@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({ testDir: './e2e', testMatch: 'campaigns.spec.ts', timeout: 120000, expect: { timeout: 20000 }, workers: 1, reporter: [['list']], use: { actionTimeout: 20000, baseURL: 'http://127.0.0.1:3101', headless: true, channel: 'msedge', viewport: { width: 1440, height: 1000 }, screenshot: 'only-on-failure', trace: 'retain-on-failure' } });

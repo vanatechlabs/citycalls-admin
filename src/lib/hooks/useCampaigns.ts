@@ -21,7 +21,9 @@ export interface Campaign {
   _id: string;
   name: string;
   channel: 'WHATSAPP' | 'EMAIL';
-  templateId: string;
+  templateId?: string;
+  contentType?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'CAROUSEL';
+  lastError?: string;
   providerCampaignName?: string;
   templateParams: string[];
   media?: { fileId?: string; url: string; filename: string };
@@ -33,13 +35,14 @@ export interface Campaign {
   createdAt: string;
 }
 
-export function useCampaigns() {
+export function useCampaigns(page = 1) {
   return useQuery({
-    queryKey: ['campaigns'],
+    queryKey: ['campaigns', page],
     queryFn: async () => {
-      const res = await apiClient.get<ApiSuccessEnvelope<Campaign[]>>('/campaigns', { params: { limit: 100 } });
-      return res.data.data;
+      const res = await apiClient.get<ApiSuccessEnvelope<Campaign[]>>('/campaigns', { params: { page, limit: 20 } });
+      return { items: res.data.data, meta: res.data.meta };
     },
+    refetchInterval: 5000,
   });
 }
 
@@ -50,10 +53,11 @@ export interface CreateCampaignInput {
   providerCampaignName?: string;
   campaignPreset?: 'FESTIVAL' | 'INDEPENDENCE_DAY';
   templateParams?: string[];
-  media?: { fileId?: string; url: string; filename: string };
+  media?: { fileId?: string; url: string; filename: string } | null;
+  contentType?: Campaign['contentType'];
   carouselCards?: Array<{ cardIndex: number; imageUrl: string }>;
   audienceFilter: CampaignAudienceFilter;
-  scheduledAt?: string;
+  scheduledAt?: string | null;
 }
 
 export interface AudiencePreview {
@@ -80,7 +84,7 @@ export function useCreateCampaign() {
   const queryClient = useQueryClient();
   return useMutation<Campaign, AxiosError<ApiErrorEnvelope>, CreateCampaignInput>({
     mutationFn: async (input) => {
-      const res = await apiClient.post<ApiSuccessEnvelope<Campaign>>('/campaigns', input);
+      const res = await apiClient.post<ApiSuccessEnvelope<Campaign>>('/campaigns', input, { skipGlobalToast: true });
       return res.data.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
@@ -102,7 +106,7 @@ export function useUpdateCampaign() {
   const queryClient = useQueryClient();
   return useMutation<Campaign, AxiosError<ApiErrorEnvelope>, Partial<CreateCampaignInput> & { id: string }>({
     mutationFn: async ({ id, ...input }) => {
-      const res = await apiClient.patch<ApiSuccessEnvelope<Campaign>>(`/campaigns/${id}`, input);
+      const res = await apiClient.patch<ApiSuccessEnvelope<Campaign>>(`/campaigns/${id}`, input, { skipGlobalToast: true });
       return res.data.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
@@ -130,4 +134,18 @@ export function useDeleteCampaign() {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
     },
   });
+}
+
+export function useCancelCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => {
+    const res = await apiClient.post<ApiSuccessEnvelope<Campaign>>(`/campaigns/${id}/cancel`);
+    return res.data.data;
+  }, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }) });
+}
+export function useCampaignRecipients(id: string, page: number) {
+  return useQuery({ queryKey: ['campaign-recipients', id, page], queryFn: async () => {
+    const res = await apiClient.get<ApiSuccessEnvelope<Array<{ _id: string; name: string; destination: string; status: string; failureReason?: string }>>>(`/campaigns/${id}/recipients`, { params: { page, limit: 20 } });
+    return { items: res.data.data, meta: res.data.meta };
+  }, refetchInterval: 5000 });
 }
