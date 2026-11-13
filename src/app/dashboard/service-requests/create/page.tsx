@@ -9,9 +9,11 @@ import { Separator } from '@/components/ui/separator';
 
 import { useCreateServiceRequest } from '@/lib/hooks/useServiceRequests';
 import { useCustomers } from '@/lib/hooks/useCustomers';
-import { useCatalogServices } from '@/lib/hooks/useCatalogServices';
+import { useCatalogServices, useBookingQuote } from '@/lib/hooks/useCatalogServices';
 
 interface FormValues {
+  hours: number;
+  helpers: number;
   customerId: string;
   addressIndex: string;
   serviceId: string;
@@ -27,9 +29,14 @@ export default function CreateServiceRequestPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { priority: 'NORMAL' },
+    defaultValues: { priority: 'NORMAL', hours: 1, helpers: 1 },
   });
 
+  const serviceId = useWatch({ control, name: 'serviceId' }) ?? '';
+  const hours = useWatch({ control, name: 'hours' }) ?? 1;
+  const helpers = useWatch({ control, name: 'helpers' }) ?? 1;
+  const selectedService = services?.find(s => s._id === serviceId);
+  const quote = useBookingQuote(serviceId, hours, helpers);
   const customerId = useWatch({ control, name: 'customerId' });
   const selectedCustomer = customers?.find((c) => c._id === (customerId || selectedCustomerId));
 
@@ -38,13 +45,14 @@ export default function CreateServiceRequestPage() {
     // The dropdown only lists addresses that already have a line1 (see the
     // note above the select), so this is always true in practice here —
     // just narrowing the type, not a real runtime fallback.
-    if (!selectedCustomer || !address || !address.line1) return;
+    if (!selectedCustomer || !address || !address.line1 || !quote.data) return;
 
     createReq.mutate(
       {
         customerId: selectedCustomer._id,
         serviceId: data.serviceId,
         source: 'CALL',
+        hours: data.hours, helpers: data.helpers, expectedTotal: quote.data?.total,
         priority: data.priority,
         symptoms: data.symptoms ? [data.symptoms] : [],
         addressSnapshot: {
@@ -160,6 +168,11 @@ export default function CreateServiceRequestPage() {
               </div>
             </div>
 
+            {selectedService?.pricing?.mode === 'HOURLY' && <div className="grid grid-cols-2 gap-4">
+              <label>Booked hours<input type="number" min="1" max="16" {...register('hours', { valueAsNumber: true, min: 1, max: 16 })} className="w-full rounded border p-2" /></label>
+              <label>Helpers<input type="number" min="1" max="4" {...register('helpers', { valueAsNumber: true, min: 1, max: 4 })} className="w-full rounded border p-2" /></label>
+            </div>}
+            {serviceId && <p>{quote.isPending ? 'Calculating price…' : quote.isError ? 'Could not confirm the price. Please check the service configuration.' : `${quote.data?.mode === 'ESTIMATE' ? 'Visit / inspection' : 'Agreed booking total'}: ₹${quote.data?.total}`}</p>}
             {/* Request Details Section */}
             <div className="space-y-3 pt-2">
               <h2 className="text-base font-semibold text-foreground border-b border-border/50 pb-1 mb-2">Request Details</h2>
@@ -179,7 +192,7 @@ export default function CreateServiceRequestPage() {
           </CardContent>
           <CardFooter className="flex justify-between gap-2 bg-muted/30 p-4 border-t border-border/50">
             <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={createReq.isPending}>
+            <Button type="submit" disabled={createReq.isPending || quote.isPending || !quote.data}>
               {createReq.isPending ? 'Creating...' : 'Create Request'}
             </Button>
           </CardFooter>

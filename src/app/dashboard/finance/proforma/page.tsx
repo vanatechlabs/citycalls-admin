@@ -1,4 +1,5 @@
 'use client';
+import { DocumentDownloadButton } from '@/components/finance/DocumentDownloadButton';
 
 import { useState } from 'react';
 import { DataTable } from '@/components/ui/DataTable';
@@ -75,6 +76,7 @@ export default function ProformaInvoicesPage() {
                       header: '',
                       render: (item) => (
                         <div className="flex items-center gap-1">
+                            <DocumentDownloadButton type="PROFORMA_INVOICE" id={item._id} />
                           {item.status === 'DRAFT' && (
                             <Button size="sm" variant="outline" disabled={anyActionPending} onClick={() => shareProforma.mutate({ id: item._id, channels: ['WHATSAPP'] })}>
                               Share

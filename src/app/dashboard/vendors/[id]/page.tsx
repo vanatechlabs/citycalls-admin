@@ -1,5 +1,6 @@
 'use client';
 
+import { ServiceCommissionEditor } from '@/components/vendors/ServiceCommissionEditor';
 import { use, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -500,7 +501,8 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-muted-foreground">PAN:</span>
               <span className="font-medium">{vendor.pan || 'N/A'}</span>
               <span className="text-muted-foreground">Commission:</span>
-              <span className="font-medium">{vendor.commissionModel.replace('_', '-')} — {vendor.commissionRate ?? 0}%</span>
+              <span className="font-medium">{vendor.commissionModel.replace('_', '-')} — {vendor.commissionModel === 'FIXED' ? `${vendor.commissionRate ?? 0}%` : 'rates configured per service'}</span>
+              {vendor.commissionModel === 'SERVICE_WISE' && <ServiceCommissionEditor key={vendor._id + JSON.stringify(vendor.serviceCommissionRates)} vendor={vendor} />}
             </div>
           </CardContent>
         </Card>

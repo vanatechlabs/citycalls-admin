@@ -48,6 +48,8 @@ export interface ServiceRequestCustomerProduct {
 }
 
 export interface ServiceRequest {
+  vendorTechnicianUserId?: string;
+  bookingPrice?: { mode: 'FIXED' | 'HOURLY' | 'ESTIMATE'; unitPrice: number; hours: number; helpers: number; total: number; subtotal?: number; taxBreakup?: { cgst: number; sgst: number; igst: number } };
   _id: string;
   number: string;
   status: string;
@@ -198,6 +200,9 @@ export function useDeleteServiceRequest() {
 }
 
 export interface CreateServiceRequestInput {
+  hours?: number;
+  helpers?: number;
+  expectedTotal?: number;
   customerId: string;
   customerProductId?: string;
   addressSnapshot: ServiceRequestAddress;

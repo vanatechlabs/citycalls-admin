@@ -549,10 +549,10 @@ function ServicesPageContent() {
               },
               {
                 key: 'pricing',
-                header: 'Base Price (₹)',
+                header: 'Service Price (₹)',
                 render: (item) => (
                   <span className="font-semibold text-slate-900">
-                    ₹{(item.pricing?.basePrice ?? 0).toLocaleString('en-IN')}
+                    ₹{(item.pricing?.mode === 'HOURLY' ? item.pricing.hourlyRate ?? item.pricing.basePrice : item.pricing?.basePrice ?? 0).toLocaleString('en-IN')} {item.pricing?.mode === 'HOURLY' ? '/hr/helper' : item.pricing?.mode === 'ESTIMATE' ? '(estimate after inspection)' : '(fixed)'}
                   </span>
                 ),
               },

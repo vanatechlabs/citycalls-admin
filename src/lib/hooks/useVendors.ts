@@ -26,6 +26,7 @@ export interface Vendor {
   pan?: string;
   bankDetails?: VendorBankDetails;
   agreement?: VendorAgreement;
+  serviceCommissionRates?: { serviceId: string; rate: number }[];
   commissionModel: 'FIXED' | 'SERVICE_WISE';
   commissionRate?: number;
   active: boolean;
@@ -67,6 +68,7 @@ export function useVendorsCount(params?: { active?: boolean; blacklisted?: boole
 }
 
 export interface VendorInput {
+  serviceCommissionRates?: { serviceId: string; rate: number }[];
   companyName?: string;
   contactPersons?: { name: string; mobile: string; role?: string }[];
   serviceAreas?: { pinCodes: string[] };

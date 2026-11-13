@@ -22,6 +22,8 @@ const serviceSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   description: z.string().optional(),
   categoryId: z.string().min(1, 'Select a category'),
+  pricingMode: z.enum(['FIXED', 'HOURLY', 'ESTIMATE']),
+  hourlyRate: z.number().min(0),
   basePrice: z.number().min(0),
   visitingCharge: z.number().min(0),
   inspectionCharge: z.number().min(0),
@@ -76,6 +78,8 @@ export function ServiceForm({
       name: service?.name ?? '',
       description: service?.description ?? '',
       categoryId: service?.categoryId ?? '',
+      pricingMode: service?.pricing?.mode ?? 'FIXED',
+      hourlyRate: service?.pricing?.hourlyRate ?? service?.pricing?.basePrice ?? 0,
       basePrice: service?.pricing?.basePrice ?? 0,
       visitingCharge: service?.pricing?.visitingCharge ?? 0,
       inspectionCharge: service?.pricing?.inspectionCharge ?? 0,
@@ -109,6 +113,8 @@ export function ServiceForm({
       categoryId: values.categoryId,
       ...diagnosis,
       pricing: {
+        mode: selectedCategory?.key === 'HOME_APPLIANCES' ? 'ESTIMATE' : selectedCategory?.key === 'HELP_NOW' ? values.pricingMode === 'HOURLY' ? 'HOURLY' : 'FIXED' : 'FIXED',
+        hourlyRate: values.hourlyRate,
         basePrice: values.basePrice,
         visitingCharge: values.visitingCharge,
         inspectionCharge: config.inspectionCharge
@@ -167,6 +173,12 @@ export function ServiceForm({
         </div>
       </Section>
 
+      {selectedCategory?.key === 'HELP_NOW' && <div className="space-y-2">
+        <label className={FIELD_LABEL}>Pricing mode</label>
+        <select className={SELECT} {...register('pricingMode')}><option value="FIXED">Fixed package</option><option value="HOURLY">Hourly per helper</option></select>
+        <AppFormField label="Hourly rate per helper (₹)" type="number" error={errors.hourlyRate?.message} {...register('hourlyRate', { valueAsNumber: true })} />
+        <p className="text-xs text-muted-foreground">Confirmed bookings retain their agreed price. Other categories use fixed pricing; Home Appliances uses estimates.</p>
+      </div>}
       <Section title="Pricing & Timing" description="Charges are shown to customers in ₹.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <AppFormField

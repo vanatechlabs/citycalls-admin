@@ -11,7 +11,7 @@ export interface CatalogService {
   symptomIds?: string[];
   defectIds?: string[];
   solutionTypeIds?: string[];
-  pricing?: { basePrice: number; visitingCharge: number; inspectionCharge: number; emergencyCharge: number };
+  pricing?: { mode?: 'FIXED' | 'HOURLY' | 'ESTIMATE'; hourlyRate?: number; basePrice: number; visitingCharge: number; inspectionCharge: number; emergencyCharge: number };
   expectedDurationMinutes?: number;
   warrantyPeriodDays?: number;
   slaMinutes?: number;
@@ -74,7 +74,7 @@ export interface CreateCatalogServiceInput {
   symptomIds?: string[];
   defectIds?: string[];
   solutionTypeIds?: string[];
-  pricing?: { basePrice?: number; visitingCharge?: number; inspectionCharge?: number; emergencyCharge?: number };
+  pricing?: { mode?: 'FIXED' | 'HOURLY' | 'ESTIMATE'; hourlyRate?: number; basePrice?: number; visitingCharge?: number; inspectionCharge?: number; emergencyCharge?: number };
   expectedDurationMinutes?: number;
   warrantyPeriodDays?: number;
   active?: boolean;
@@ -143,5 +143,12 @@ export function useClearUnusedDiagnosticLinks() {
       return res.data.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogServices'] }),
+  });
+}
+
+
+export function useBookingQuote(serviceId: string, hours: number, helpers: number) {
+  return useQuery({ queryKey: ['bookingQuote', serviceId, hours, helpers], enabled: !!serviceId,
+    queryFn: async () => { const res = await apiClient.post<ApiSuccessEnvelope<{ mode: string; total: number; subtotal: number }>>(`/services/${serviceId}/quote`, { hours, helpers }); return res.data.data; }
   });
 }

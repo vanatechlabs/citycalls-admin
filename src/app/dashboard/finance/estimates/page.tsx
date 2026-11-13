@@ -1,4 +1,6 @@
 'use client';
+import { EstimateRecoveryPanel } from '@/components/finance/EstimateRecoveryPanel';
+import { DocumentDownloadButton } from '@/components/finance/DocumentDownloadButton';
 
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { DataTable } from '@/components/ui/DataTable';
@@ -159,6 +161,7 @@ export default function EstimatesPage() {
 
   return (
     <div className="space-y-6">
+      <EstimateRecoveryPanel />
       <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-border/50">
         <div>
           <h1 className="text-lg font-medium tracking-tight text-foreground">Estimates</h1>
@@ -205,6 +208,7 @@ export default function EstimatesPage() {
                       header: '',
                       render: (item) => (
                         <div className="flex items-center gap-1">
+                            <DocumentDownloadButton type="ESTIMATE" id={item._id} />
                           {item.status === 'DRAFT' && (
                             <Button size="sm" variant="outline" disabled={anyActionPending} onClick={() => shareEstimate.mutate({ id: item._id, channels: ['WHATSAPP'] })}>
                               Share

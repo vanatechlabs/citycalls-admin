@@ -24,7 +24,7 @@ export function useInvoices(serviceRequestId?: string) {
   });
 }
 
-export const PAYMENT_METHODS = ['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'GATEWAY', 'CHEQUE', 'CREDIT'] as const;
+export const PAYMENT_METHODS = ['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'CHEQUE', 'CREDIT'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export interface RecordPaymentInput {
@@ -38,7 +38,11 @@ export function useRecordPayment() {
   const queryClient = useQueryClient();
   return useMutation<unknown, AxiosError<ApiErrorEnvelope>, RecordPaymentInput>({
     mutationFn: async ({ invoiceId, ...input }) => {
-      const res = await apiClient.post(`/invoices/${invoiceId}/payments`, input);
+      const fingerprint = `collection:${invoiceId}:${input.amount}:${input.method}:${input.reference ?? ''}`;
+      const idempotencyKey = sessionStorage.getItem(fingerprint) ?? crypto.randomUUID();
+      sessionStorage.setItem(fingerprint, idempotencyKey);
+      const res = await apiClient.post(`/invoices/${invoiceId}/payments`, { ...input, idempotencyKey });
+      sessionStorage.removeItem(fingerprint);
       return res.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),

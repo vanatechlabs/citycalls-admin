@@ -1,4 +1,5 @@
 'use client';
+import { VendorTechnicianAllocation } from '@/components/service-requests/VendorTechnicianAllocation';
 
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
@@ -119,6 +120,8 @@ export default function ServiceRequestDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {ticket.assigneeType === 'VENDOR' && ticket.assigneeId && <VendorTechnicianAllocation jobId={ticket._id} vendorId={ticket.assigneeId} assigned={ticket.vendorTechnicianUserId} />}
+      {ticket.bookingPrice && <Card><CardHeader><CardTitle>Agreed booking price</CardTitle></CardHeader><CardContent><p>{ticket.bookingPrice.mode} · ₹{ticket.bookingPrice.total.toLocaleString('en-IN')}</p>{ticket.bookingPrice.mode === 'HOURLY' && <p>{ticket.bookingPrice.hours} hours × {ticket.bookingPrice.helpers} helpers at ₹{ticket.bookingPrice.unitPrice}/hour</p>}<p className="text-xs text-muted-foreground">Saved at booking. Catalog edits do not change this amount.</p></CardContent></Card>}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>

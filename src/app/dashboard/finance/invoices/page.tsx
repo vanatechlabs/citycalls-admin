@@ -1,4 +1,6 @@
 'use client';
+import { DocumentDownloadButton } from '@/components/finance/DocumentDownloadButton';
+import { PaymentReviews } from '@/components/finance/PaymentReviews';
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -147,6 +149,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
+      <PaymentReviews />
       <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-border/50">
         <div>
           <h1 className="text-lg font-medium tracking-tight text-foreground">Invoices & Payments</h1>
@@ -242,6 +245,7 @@ export default function InvoicesPage() {
                         <Button className="w-full mt-2" variant="outline" onClick={handleShare} disabled={shareInvoice.isPending}>
                           {shareInvoice.isPending ? 'Sending...' : 'Share via Email/WhatsApp'}
                         </Button>
+                        <DocumentDownloadButton type="INVOICE" id={selectedInvoice._id} />
                         {shareInvoice.isSuccess && <p className="text-sm text-green-600 mt-2">Invoice shared.</p>}
                         {selectedInvoice.amountPaid === 0 && (
                           <Button variant="destructive" className="w-full mt-2" onClick={handleCancel} disabled={cancelInvoice.isPending}>
