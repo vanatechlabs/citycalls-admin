@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 import { CalendarCheck, CheckCircle2, CirclePlus, Clock, PlayCircle, RotateCcw, XCircle } from 'lucide-react';
 import type { RegistrationStats, RegistrationStatus } from '@/lib/hooks/useRegistrations';
-import { registrationListPath, stageSlugOf, STATUS_META } from '@/lib/registrations/constants';
+import { registrationListPath, stageSlugOf, STATUS_META, type StageSlug } from '@/lib/registrations/constants';
 
 // Counts up from 0 to `value` — same feel as the Arogya admin's CountUp.
 function CountUp({ value }: { value: number }) {
@@ -44,9 +44,11 @@ interface RegistrationStatsCardsProps {
   stage?: RegistrationStatus;
   categorySlug: string;
   onTodayClick: () => void;
+  // The list a stage card opens (Help Now Call Section has its own).
+  listPathFor?: (stage: StageSlug) => string;
 }
 
-export function RegistrationStatsCards({ stats, stage, categorySlug, onTodayClick }: RegistrationStatsCardsProps) {
+export function RegistrationStatsCards({ stats, stage, categorySlug, onTodayClick, listPathFor }: RegistrationStatsCardsProps) {
   const by = stats?.byStatus;
   const stageCard = (status: RegistrationStatus, desc: string, icon: StatCard['icon'], colors: Pick<StatCard, 'iconBg' | 'iconBorder' | 'bg' | 'text'>): StatCard => ({
     key: status,
@@ -54,7 +56,7 @@ export function RegistrationStatsCards({ stats, stage, categorySlug, onTodayClic
     desc,
     value: by?.[status] ?? 0,
     icon,
-    href: registrationListPath(categorySlug, stageSlugOf(status)),
+    href: listPathFor ? listPathFor(stageSlugOf(status)) : registrationListPath(categorySlug, stageSlugOf(status)),
     current: stage === status,
     ...colors,
   });

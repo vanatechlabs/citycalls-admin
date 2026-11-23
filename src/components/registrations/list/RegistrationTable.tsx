@@ -5,7 +5,7 @@ import {
   ArrowRightLeft, Edit, Eye, StickyNote, Trash2, X,
 } from 'lucide-react';
 import type { Registration, RegistrationStatus } from '@/lib/hooks/useRegistrations';
-import { STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
+import { PAYMENT_META, STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
 import { formatDate, formatTime } from '@/lib/registrations/format';
 import { SourceBadge, StatusBadge } from '../shared/StatusBadge';
 
@@ -18,7 +18,10 @@ interface RegistrationTableProps {
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   onView: (row: Registration) => void;
-  onEdit: (row: Registration) => void;
+  // Left out for Help Now calls (booked on the website, not edited here).
+  onEdit?: (row: Registration) => void;
+  // Help Now Call Section: a Payment column in place of Brand.
+  showPayment?: boolean;
   onChangeStatus: (row: Registration) => void;
   onDelete: (row: Registration) => void;
 }
@@ -83,7 +86,7 @@ function NotesDialog({ row, onClose }: { row: Registration; onClose: () => void 
 }
 
 export function RegistrationTable({
-  stage, rows, startIndex, loading, selectedIds, onSelectionChange, onView, onEdit, onChangeStatus, onDelete,
+  stage, rows, startIndex, loading, selectedIds, onSelectionChange, onView, onEdit, onChangeStatus, onDelete, showPayment,
 }: RegistrationTableProps) {
   const pageIds = rows.map((r) => r._id);
   const allOnPageSelected = rows.length > 0 && pageIds.every((id) => selectedIds.includes(id));
@@ -137,7 +140,7 @@ export function RegistrationTable({
               <th className={TH}>Mobile / Email</th>
               <th className={TH}>Service</th>
               <th className={TH}>Issue</th>
-              <th className={TH}>Brand</th>
+              <th className={TH}>{showPayment ? 'Payment' : 'Brand'}</th>
               <th className={TH}>Visit</th>
               <th className={TH}>Coupon</th>
               {/* WEBSITE = booked on citycalls.in, ADMIN = added from New Registration */}
@@ -216,10 +219,25 @@ export function RegistrationTable({
                     </div>
                   </td>
 
-                  <td className={TD}>
-                    <p className="text-[10px] font-semibold text-purple-700">{row.brand || '—'}</p>
-                    {row.modelNumber && <p className="text-[9px] text-slate-500">{row.modelNumber}</p>}
-                  </td>
+                  {showPayment ? (
+                    <td className={TD}>
+                      {row.payment ? (
+                        <>
+                          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${PAYMENT_META[row.payment.status].badge}`}>
+                            {PAYMENT_META[row.payment.status].label}
+                          </span>
+                          <p className="mt-1 text-[10px] font-bold text-slate-800">₹{row.payment.amount.toLocaleString('en-IN')}</p>
+                        </>
+                      ) : (
+                        <p className="text-[10px] text-slate-400">—</p>
+                      )}
+                    </td>
+                  ) : (
+                    <td className={TD}>
+                      <p className="text-[10px] font-semibold text-purple-700">{row.brand || '—'}</p>
+                      {row.modelNumber && <p className="text-[9px] text-slate-500">{row.modelNumber}</p>}
+                    </td>
+                  )}
 
                   <td className={TD}>
                     <p className="text-[10px] font-medium text-slate-800">{row.preferredDate ? formatDate(row.preferredDate) : 'Not set'}</p>
@@ -290,9 +308,11 @@ export function RegistrationTable({
                       <button type="button" onClick={() => onView(row)} className={actionButton('blue')} title="View details" aria-label="View details">
                         <Eye className="h-3 w-3" />
                       </button>
-                      <button type="button" onClick={() => onEdit(row)} className={actionButton('amber')} title="Edit" aria-label="Edit">
-                        <Edit className="h-3 w-3" />
-                      </button>
+                      {onEdit && (
+                        <button type="button" onClick={() => onEdit(row)} className={actionButton('amber')} title="Edit" aria-label="Edit">
+                          <Edit className="h-3 w-3" />
+                        </button>
+                      )}
                       <button type="button" onClick={() => onDelete(row)} className={actionButton('red')} title="Delete" aria-label="Delete">
                         <Trash2 className="h-3 w-3" />
                       </button>

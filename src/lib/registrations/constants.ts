@@ -1,4 +1,4 @@
-import type { IssueFrequency, MoveStatus, RegistrationStatus } from '@/lib/hooks/useRegistrations';
+import type { IssueFrequency, MoveStatus, RegistrationStatus, PaymentStatus } from '@/lib/hooks/useRegistrations';
 
 export const STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana',
@@ -86,6 +86,43 @@ export function stageSlugOf(status: RegistrationStatus): StageSlug {
 export function registrationListPath(categorySlug: string = ALL_CATEGORIES, stage: StageSlug = 'new') {
   return `/dashboard/registrations/list/${categorySlug}/${stage}`;
 }
+
+// ─── Help Now Call Section: /dashboard/help-now-calls/list/[service]/[stage] ─
+// Help Now bookings are calls with category "Help Now"; each service has its
+// own lists. service is a Help Now service slug, or "all".
+export const HELP_NOW_CATEGORY = 'Help Now';
+export const HELP_NOW_CALL_SERVICES = [
+  { slug: 'house-cleaning', name: 'House Cleaning' },
+  { slug: 'dish-washing', name: 'Dish Washing' },
+  { slug: 'kitchen-assistance', name: 'Kitchen Assistance' },
+  { slug: 'bathroom-cleaning', name: 'Bathroom Cleaning' },
+  { slug: 'laundry-ironing', name: 'Laundry & Ironing' },
+  { slug: 'dusting-wiping', name: 'Dusting & Wiping' },
+  { slug: 'everyday-home-help', name: 'Everyday Home Help' },
+] as const;
+
+export function helpNowCallListPath(serviceSlug: string = ALL_CATEGORIES, stage: StageSlug = 'new') {
+  return `/dashboard/help-now-calls/list/${serviceSlug}/${stage}`;
+}
+
+export const isHelpNowCall = (r: { serviceCategory?: string }) => r.serviceCategory === HELP_NOW_CATEGORY;
+
+// A call's own list (Back / breadcrumb): Help Now calls go to their service's list.
+export function callListPathFor(r: { serviceCategory?: string; serviceName: string; status: RegistrationStatus }, categorySlug: string) {
+  if (isHelpNowCall(r)) {
+    const service = HELP_NOW_CALL_SERVICES.find((s) => s.name === r.serviceName);
+    return helpNowCallListPath(service?.slug ?? ALL_CATEGORIES, stageSlugOf(r.status));
+  }
+  return registrationListPath(categorySlug, stageSlugOf(r.status));
+}
+
+// Payment badge on a Help Now call.
+export const PAYMENT_META: Record<PaymentStatus, { label: string; badge: string }> = {
+  PAID: { label: 'Paid', badge: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
+  PENDING: { label: 'Not completed', badge: 'border-amber-300 bg-amber-50 text-amber-800' },
+  FAILED: { label: 'Failed', badge: 'border-red-300 bg-red-50 text-red-700' },
+  TO_COLLECT: { label: 'Pay after service', badge: 'border-sky-300 bg-sky-50 text-sky-700' },
+};
 
 // Everything the UI needs per status: badge colours, its list title, and —
 // for statuses a call can be moved to — the action wording for the note popup.

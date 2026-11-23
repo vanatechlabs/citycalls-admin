@@ -84,11 +84,19 @@ import {
   Mail,
   MessageSquareQuote,
   FilePenLine,
-  Newspaper
+  Newspaper,
+  Bath,
+  ChefHat,
+  Fan,
+  Home,
+  Shirt,
+  Utensils,
 } from 'lucide-react';
 import { useRegistrationServices, useUnreadRegistrations } from '@/lib/hooks/useRegistrations';
 import { useEnquiryPendingCounts, type EnquiryType } from '@/lib/hooks/useEnquiries';
-import { ALL_CATEGORIES, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE } from '@/lib/registrations/constants';
+import {
+  ALL_CATEGORIES, HELP_NOW_CALL_SERVICES, helpNowCallListPath, registrationListPath, SIDEBAR_STAGE_SLUGS, STAGE_TITLE,
+} from '@/lib/registrations/constants';
 import { displayCategoryName } from '@/lib/registrations/format';
 import { useBeautyMode } from '@/lib/hooks/useBeautyMode';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -123,6 +131,29 @@ export interface NavItem {
 export function menuKey(group: string, title: string) {
   return `${group}::${title}`;
 }
+
+// Help Now Call Section: one menu per Help Now service, then "All
+// Categories", each expanding into New / Active / Pending / Reopen / Closed /
+// Cancelled. Unread badges are added at render time.
+const HELP_NOW_CALL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  'house-cleaning': Home,
+  'dish-washing': Utensils,
+  'kitchen-assistance': ChefHat,
+  'bathroom-cleaning': Bath,
+  'laundry-ironing': Shirt,
+  'dusting-wiping': Fan,
+  'everyday-home-help': Sparkles,
+};
+const HELP_NOW_ALL_TITLE = 'All Categories';
+const helpNowCallItems: NavItem[] = [
+  ...HELP_NOW_CALL_SERVICES.map((service) => ({ slug: service.slug, title: service.name, icon: HELP_NOW_CALL_ICONS[service.slug] ?? Layers })),
+  { slug: ALL_CATEGORIES, title: HELP_NOW_ALL_TITLE, icon: LayoutGrid },
+].map(({ slug, title, icon }) => ({
+  title,
+  icon,
+  module: 'customers',
+  children: SIDEBAR_STAGE_SLUGS.map((stage) => ({ title: STAGE_TITLE[stage], url: helpNowCallListPath(slug, stage) })),
+}));
 
 export const navItems: { group: string; items: NavItem[] }[] = [
   {
@@ -244,6 +275,11 @@ export const navItems: { group: string; items: NavItem[] }[] = [
       // + "All Categories" and one dropdown per Navbar List menu, added at
       // render time by useRegistrationCategoryItems().
     ],
+  },
+  {
+    // Help Now website bookings (calls with category "Help Now"), per service.
+    group: 'Help Now Call Section',
+    items: helpNowCallItems,
   },
   {
     // Phone calls that only asked about a service (name, mobile, service, source).
@@ -483,6 +519,7 @@ function AdminSidebarContent() {
   const { state: sidebarState, toggleSidebar, setOpen: setSidebarOpen } = useSidebar();
   const collapsed = sidebarState === 'collapsed';
   const registrationCategoryItems = useRegistrationCategoryItems();
+  const { data: unread } = useUnreadRegistrations();
   const { data: pendingEnquiries } = useEnquiryPendingCounts({ enabled: usePermission('leads', 'view') });
   // Menu Access (set by Super Admin per user): only the chosen menus show.
   // Super Admin and users without a saved list see everything.
@@ -495,6 +532,25 @@ function AdminSidebarContent() {
     .map((group) =>
       group.group === 'Enquiry Section'
         ? { ...group, items: group.items.map((item) => ({ ...item, badge: pendingEnquiries?.[ENQUIRY_BADGE[item.title]] })) }
+        : group
+    )
+    // Help Now Call Section: unread per service, and unread New calls on each "New Call" link.
+    .map((group) =>
+      group.group === 'Help Now Call Section'
+        ? {
+          ...group,
+          items: group.items.map((item) => {
+            const all = item.title === HELP_NOW_ALL_TITLE;
+            const counts = unread?.helpNow;
+            return {
+              ...item,
+              badge: all ? counts?.total : counts?.byService[item.title],
+              children: item.children?.map((child) =>
+                child.title === STAGE_TITLE.new ? { ...child, badge: all ? counts?.newTotal : counts?.newByService[item.title] } : child
+              ),
+            };
+          }),
+        }
         : group
     )
     .map((group) => ({

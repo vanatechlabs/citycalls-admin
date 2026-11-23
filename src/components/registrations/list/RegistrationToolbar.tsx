@@ -56,10 +56,12 @@ export function RegistrationFilterControls({ filters, onChange, services }: {
         <option value="WEBSITE">Website</option>
       </select>
 
-      <select value={filters.serviceId} onChange={(e) => onChange({ serviceId: e.target.value })} className={`${FILTER_SELECT} max-w-[190px]`}>
-        <option value="">All Services</option>
-        {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-      </select>
+      {services.length > 0 && (
+        <select value={filters.serviceId} onChange={(e) => onChange({ serviceId: e.target.value })} className={`${FILTER_SELECT} max-w-[190px]`}>
+          <option value="">All Services</option>
+          {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      )}
     </div>
   );
 }

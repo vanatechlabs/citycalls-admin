@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, CalendarClock, ClipboardCheck, Edit, ImageIcon, Printer, TicketPercent, Wrench,
+  ArrowLeft, CalendarClock, ClipboardCheck, CreditCard, Edit, ImageIcon, Printer, TicketPercent, Wrench,
 } from 'lucide-react';
 
 import { useEffect } from 'react';
-import { useMarkRegistrationViewed, useRegistrationServices, Registration } from '@/lib/hooks/useRegistrations';
-import { ALL_CATEGORIES, registrationListPath, stageSlugOf, STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
+import { useMarkRegistrationViewed, useRegistrationServices, Registration, RegistrationPayment } from '@/lib/hooks/useRegistrations';
+import { ALL_CATEGORIES, callListPathFor, isHelpNowCall, PAYMENT_META, STATUS_META, STATUS_TRANSITIONS } from '@/lib/registrations/constants';
 import { formatDate, formatTime, resolveMediaUrl } from '@/lib/registrations/format';
 import { SourceBadge, StatusBadge } from '../shared/StatusBadge';
 import { useStageTransition } from '../shared/useStageTransition';
@@ -24,6 +24,70 @@ function Chip({ children, tone = 'amber' }: { children: React.ReactNode; tone?: 
   return <span className={`inline-block rounded-md border px-2 py-0.5 text-[11.5px] font-bold ${tones[tone]}`}>{children}</span>;
 }
 
+const rupees = (n?: number) => (n === undefined ? undefined : `₹${n.toLocaleString('en-IN')}`);
+
+function PaymentBadge({ payment, size = 'sm' }: { payment: RegistrationPayment; size?: 'sm' | 'md' }) {
+  const meta = PAYMENT_META[payment.status];
+  return (
+    <span className={`inline-block rounded-md border font-bold ${meta.badge} ${size === 'md' ? 'px-2.5 py-1 text-[12px]' : 'px-2 py-0.5 text-[11px]'}`}>
+      {meta.label}
+    </span>
+  );
+}
+
+// Help Now calls: how the customer pays, and whether it went through.
+function PaymentDetails({ payment: p }: { payment: RegistrationPayment }) {
+  const online = p.mode === 'ONLINE';
+  return (
+    <DetailTable>
+      <tr>
+        <Th>Payment Status</Th>
+        <Td><PaymentBadge payment={p} size="md" /></Td>
+        <Th>Payment Mode</Th>
+        <Td className="font-semibold">{online ? 'Online (Razorpay)' : 'Pay after service'}</Td>
+      </tr>
+      <tr>
+        <Th>{p.status === 'PAID' ? 'Amount Paid' : online ? 'Amount to Pay' : 'Amount to Collect'}</Th>
+        <Td className={`text-[15px] font-extrabold ${p.status === 'PAID' ? 'text-emerald-700' : 'text-slate-900'}`}>{rupees(p.amount)}</Td>
+        <Th>Booking Value</Th>
+        <Td className="font-semibold">{rupees(p.subtotal)}</Td>
+      </tr>
+      <tr>
+        <Th>Discount</Th>
+        <Td className="font-semibold">
+          {p.discount ? <>{rupees(p.discount)} {p.couponCode && <span className="ml-1 font-mono text-[11px] text-[#4B1426]">({p.couponCode})</span>}</> : undefined}
+        </Td>
+        <Th>{p.status === 'PAID' ? 'Paid On' : 'Last Update'}</Th>
+        <Td className="font-semibold">
+          {p.status === 'PAID' && p.paidAt
+            ? <>{formatDate(p.paidAt)} <span className="ml-1 font-medium text-slate-500">{formatTime(p.paidAt)}</span></>
+            : p.updatedAt && <>{formatDate(p.updatedAt)} <span className="ml-1 font-medium text-slate-500">{formatTime(p.updatedAt)}</span></>}
+        </Td>
+      </tr>
+      {online && (
+        <tr>
+          <Th>Razorpay Payment ID</Th>
+          <Td className="font-mono text-[12px]">{p.paymentId}</Td>
+          <Th>Razorpay Order ID</Th>
+          <Td className="font-mono text-[12px]">{p.orderId}</Td>
+        </tr>
+      )}
+      {p.status !== 'PAID' && (
+        <tr>
+          <Th>{p.status === 'FAILED' ? 'Failure Reason' : 'Note'}</Th>
+          <Td colSpan={3} className={p.status === 'FAILED' ? 'font-semibold text-red-600' : 'text-slate-600'}>
+            {p.status === 'FAILED'
+              ? p.failureReason || 'Payment failed'
+              : p.status === 'PENDING'
+                ? 'The customer opened online payment but has not paid yet — call them to complete the booking.'
+                : 'Collect this amount from the customer after the service.'}
+          </Td>
+        </tr>
+      )}
+    </DetailTable>
+  );
+}
+
 export function RegistrationOverview({ registration: r }: { registration: Registration }) {
   const router = useRouter();
   const { changeStatus, isPending } = useStageTransition();
@@ -37,7 +101,9 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
   // Back goes to this registration's own category + stage list.
   const { data: menus = [] } = useRegistrationServices();
   const categorySlug = menus.find((m) => m.name === r.serviceCategory)?.slug ?? ALL_CATEGORIES;
-  const listPath = registrationListPath(categorySlug, stageSlugOf(r.status));
+  // Help Now calls belong to Help Now Call Section, and come from the website (not edited here).
+  const helpNow = isHelpNowCall(r);
+  const listPath = callListPathFor(r, categorySlug);
 
   return (
     <div className="-ml-3 -mt-3 min-h-[calc(100vh-100px)] w-[calc(100%+12px)] bg-slate-50 p-5 pb-10 print:m-0 print:w-full print:bg-white print:p-0">
@@ -56,9 +122,11 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
           <button type="button" onClick={() => window.print()} className="flex items-center gap-2 bg-white px-4 py-1.5 text-sm font-bold text-slate-800 shadow-sm transition-colors hover:bg-slate-100">
             <Printer className="h-4 w-4" /> Print
           </button>
-          <Link href={`/dashboard/registrations/${r._id}/edit`} className="flex items-center gap-1.5 bg-amber-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600">
-            <Edit className="h-4 w-4" /> Edit
-          </Link>
+          {!helpNow && (
+            <Link href={`/dashboard/registrations/${r._id}/edit`} className="flex items-center gap-1.5 bg-amber-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600">
+              <Edit className="h-4 w-4" /> Edit
+            </Link>
+          )}
           <button type="button" onClick={() => router.push(listPath)} className="flex items-center gap-1.5 bg-red-600 px-4 py-1.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-red-700">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
@@ -82,7 +150,7 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
                 </button>
               ))}
               <span className="border border-[#3e8914]/30 bg-[#3e8914]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#23471d]">
-                {r.serviceCategory ?? 'Service'} Call
+                {helpNow ? 'Help Now Call' : `${r.serviceCategory ?? 'Service'} Call`}
               </span>
             </div>
           }
@@ -114,6 +182,17 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
               </div>
             </div>
           </div>
+          {r.payment && (
+            <div className="flex items-center gap-3 border-2 border-gray-200 bg-white px-4 py-2">
+              <CreditCard className="h-5 w-5 text-slate-500" />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Payment</p>
+                <p className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
+                  {rupees(r.payment.amount)} <PaymentBadge payment={r.payment} />
+                </p>
+              </div>
+            </div>
+          )}
           {r.couponCode && (
             <div className="flex items-center gap-2 border-2 border-dashed border-[#4B1426]/40 bg-white px-4 py-2">
               <TicketPercent className="h-5 w-5 text-[#4B1426]" />
@@ -190,11 +269,50 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
           </tr>
         </DetailTable>
 
+        {r.payment && (
+          <div className="mt-10">
+            <SectionHeading>Payment</SectionHeading>
+            <PaymentDetails payment={r.payment} />
+          </div>
+        )}
+
         <div className="mt-10">
           <SectionHeading>Notes &amp; Activity</SectionHeading>
           <ActivityTimeline registration={r} />
         </div>
 
+        {helpNow ? (
+          <div className="mt-10">
+            <SectionHeading>Booking Details</SectionHeading>
+            <DetailTable>
+              <tr>
+                <Th>Tasks</Th>
+                <Td colSpan={3}>
+                  {r.issues.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">{r.issues.map((task) => <Chip key={task}>{task}</Chip>)}</div>
+                  )}
+                </Td>
+              </tr>
+              <tr>
+                <Th>Booking Summary</Th>
+                <Td colSpan={3} className="whitespace-pre-wrap leading-relaxed">{r.issueDescription}</Td>
+              </tr>
+              {/* Plan, home size, extra time and rate from the booking form, two per row */}
+              {Array.from({ length: Math.ceil((r.extraDetails?.length ?? 0) / 2) }, (_, i) => r.extraDetails!.slice(i * 2, i * 2 + 2)).map((pair) => (
+                <tr key={pair[0].label}>
+                  <Th>{pair[0].label}</Th>
+                  <Td colSpan={pair[1] ? undefined : 3} className="font-semibold">{pair[0].value}</Td>
+                  {pair[1] && (
+                    <>
+                      <Th>{pair[1].label}</Th>
+                      <Td className="font-semibold">{pair[1].value}</Td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </DetailTable>
+          </div>
+        ) : (
         <div className="mt-10">
           <SectionHeading>Issue Details</SectionHeading>
           <DetailTable>
@@ -260,6 +378,7 @@ export function RegistrationOverview({ registration: r }: { registration: Regist
             </tr>
           </DetailTable>
         </div>
+        )}
 
         <div className="mt-10">
           <SectionHeading>Address &amp; Location</SectionHeading>

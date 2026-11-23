@@ -65,6 +65,25 @@ export interface StatusHistoryEntry {
   at: string;
 }
 
+// Help Now bookings: how the customer pays and where that stands.
+//   ONLINE:        PENDING (not completed) → PAID, or FAILED
+//   AFTER_SERVICE: TO_COLLECT
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'TO_COLLECT';
+export interface RegistrationPayment {
+  mode: 'ONLINE' | 'AFTER_SERVICE';
+  status: PaymentStatus;
+  subtotal?: number;
+  discount?: number;
+  amount: number;
+  couponCode?: string;
+  gateway?: 'RAZORPAY';
+  orderId?: string;
+  paymentId?: string;
+  paidAt?: string;
+  failureReason?: string;
+  updatedAt?: string;
+}
+
 export interface Registration extends RegistrationInput {
   _id: string;
   registrationNo: string;
@@ -76,6 +95,7 @@ export interface Registration extends RegistrationInput {
   statusHistory: StatusHistoryEntry[];
   // Service-specific answers from the website form (e.g. "Outdoor unit accessible?").
   extraDetails?: { label: string; value: string }[];
+  payment?: RegistrationPayment;
   // Unset until first opened in admin (unread badge / popup).
   viewedAt?: string;
   viewedBy?: RegistrationActor;
@@ -89,6 +109,10 @@ export interface RegistrationFilters {
   q?: string;
   source?: 'ADMIN' | 'WEBSITE';
   serviceCategory?: string;
+  // Exact service (Help Now Call Section).
+  serviceName?: string;
+  // CITY_CALLS leaves Help Now calls out; HELP_NOW shows only them.
+  website?: 'CITY_CALLS' | 'HELP_NOW';
   serviceId?: string;
   from?: string;
   to?: string;
@@ -258,6 +282,8 @@ export interface UnreadRegistrations {
   // Unread calls still in New — the badge on each "New Call" link.
   newTotal: number;
   newByCategory: Record<string, number>;
+  // Help Now Call Section, per service name (the City Calls counts above leave these out).
+  helpNow?: { total: number; byService: Record<string, number>; newTotal: number; newByService: Record<string, number> };
   // Newest unread first (popup).
   latest: UnreadRegistration[];
 }
