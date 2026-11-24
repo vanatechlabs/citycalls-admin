@@ -20,7 +20,7 @@ import { useUsers } from '@/lib/hooks/useUsers';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function defaultWorkingHours(): WorkingHoursRow[] {
-  return DAY_NAMES.map((_, day) => ({ day, openTime: '09:00', closeTime: '18:00', closed: day === 0 }));
+  return DAY_NAMES.map((_, day) => ({ day, openTime: '09:00', closeTime: '18:00', closed: false }));
 }
 
 const branchFormSchema = z.object({
